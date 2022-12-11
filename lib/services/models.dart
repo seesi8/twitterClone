@@ -92,14 +92,48 @@ class UserData {
 enum AudioState { Recording, Stopped, Paused }
 
 class LengthTime {
-  num hours;
-  num days;
-  num min;
+  final num hours;
+  final num days;
+  final num min;
 
-  LengthTime({
+  const LengthTime({
     this.hours = 0,
     this.days = 0,
     this.min = 0,
+  });
+}
+
+class Poll {
+  final List<String> choices;
+  final LengthTime lengthTime;
+
+  Poll({
+    this.choices = const [],
+    this.lengthTime = const LengthTime(),
+  });
+}
+
+class Tweet {
+  Poll? poll;
+  String text;
+  List<String>? imageUrls;
+  String? audioUrl;
+  DateTime timeSent;
+  String authorUid;
+  int numHearts;
+  int numComments;
+  int numRetweets;
+
+  Tweet({
+    required this.text,
+    this.poll,
+    this.imageUrls,
+    this.audioUrl,
+    required this.timeSent,
+    required this.authorUid,
+    this.numComments = 0,
+    this.numHearts = 0,
+    this.numRetweets = 0,
   });
 }
 
