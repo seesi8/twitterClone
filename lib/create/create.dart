@@ -12,11 +12,14 @@ import 'package:provider/provider.dart';
 import 'package:record/record.dart';
 import 'package:spark/create/poll.dart';
 import 'package:spark/create/sound.dart';
+import 'package:spark/services/firestore.dart';
 import 'package:spark/shared/ProfileImg.dart';
 import 'package:bottom_drawer/bottom_drawer.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:uuid/uuid.dart';
+import '../services/auth.dart';
 import '../services/models.dart';
+import '../services/storage.dart';
 import 'lengthSelector.dart';
 
 class Create extends StatefulWidget {
@@ -36,6 +39,7 @@ class _CreateState extends State<Create> {
   PanelController _panelController = new PanelController();
   bool panelCloased = true;
   bool poll = false;
+  final TextEditingController _tweetController = TextEditingController();
 
   setPanelCloasedTrue() {
     setState(() {
@@ -45,218 +49,285 @@ class _CreateState extends State<Create> {
     });
   }
 
+  Tweet tweet = Tweet(
+    text: "",
+    timeSent: DateTime.now(),
+    authorUid: "",
+  );
+
   Widget build(BuildContext context) {
     UserData report = Provider.of<UserData>(context);
+    tweet.audioUrl = report.id;
+
+    updateText(String value) {
+      tweet.text = value;
+    }
+
+    addImagePath(String path) {
+      tweet.imagePaths ??= [];
+      tweet.imagePaths!.add(path);
+    }
+
+    removeImagePath(String path) {
+      tweet.imagePaths!.remove(path);
+    }
+
+    setAudioUrl(String url) {
+      tweet.audioUrl = url;
+    }
+
+    initPoll() {
+      tweet.poll = Poll(choices: ["", ""]);
+    }
+
+    addChoice(String choice) {
+      tweet.poll ??= Poll(choices: ["", ""]);
+      tweet.poll!.choices.add(choice);
+    }
+
+    updateChoice(int index, String value) {
+      tweet.poll ??= Poll(choices: ["", ""]);
+
+      tweet.poll!.choices[index] = value;
+    }
 
     removePoll() {
+      tweet.poll = null;
       setState(() {
         poll = false;
+        _numWidgets = 0;
       });
+    }
+
+    Tweet getTweet() {
+      return tweet;
+    }
+
+    setLengthTime(LengthTime lengthTime) {
+      tweet.poll ??= Poll(choices: ["", ""]);
+
+      tweet.poll!.lengthTime = lengthTime;
     }
 
     return Scaffold(
       backgroundColor:
           panelCloased ? Colors.black : Color.fromARGB(255, 40, 37, 37),
       appBar: panelCloased
-          ? Header(disabled: _disabled)
+          ? Header(
+              getTweet: getTweet,
+              disabled: _disabled,
+            )
           : AppBar(
               toolbarHeight: 0,
             ),
       body: Stack(
         children: [
-          panelCloased
-              ? Align(
-                  alignment: FractionalOffset.bottomCenter,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Column(
-                        children: [
-                          const Divider(
-                            color: Colors.grey,
-                            thickness: 0.6,
-                          ),
+          Align(
+            alignment: FractionalOffset.bottomCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Column(
+                  children: [
+                    const Divider(
+                      color: Colors.grey,
+                      thickness: 0.6,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Row(
+                        children: const [
                           Padding(
-                            padding: const EdgeInsets.only(left: 8.0),
-                            child: Row(
-                              children: const [
-                                Padding(
-                                  padding: EdgeInsets.only(right: 8.0),
-                                  child: Icon(
-                                    FontAwesomeIcons.earthAmericas,
-                                    color: Colors.blue,
-                                    size: 17,
-                                  ),
-                                ),
-                                Text(
-                                  "Everyone can reply",
-                                  style: TextStyle(
-                                      color: Colors.blue, fontSize: 13),
-                                )
-                              ],
+                            padding: EdgeInsets.only(right: 8.0),
+                            child: Icon(
+                              FontAwesomeIcons.earthAmericas,
+                              color: Colors.blue,
+                              size: 17,
                             ),
                           ),
+                          Text(
+                            "Everyone can reply",
+                            style: TextStyle(color: Colors.blue, fontSize: 13),
+                          )
                         ],
                       ),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Column(
+                    children: [
+                      const Divider(
+                        color: Colors.grey,
+                        thickness: 0.6,
+                      ),
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Column(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Row(
                           children: [
-                            const Divider(
-                              color: Colors.grey,
-                              thickness: 0.6,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(left: 8.0),
-                              child: Row(
-                                children: [
-                                  IconButton(
-                                    padding: EdgeInsets.zero,
-                                    constraints: BoxConstraints(),
-                                    onPressed: () async {
-                                      var status = await Permission.microphone;
-                                      var request = await status.request();
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: BoxConstraints(),
+                              onPressed: () async {
+                                var status = await Permission.microphone;
+                                var request = await status.request();
 
-                                      if (await status.isGranted ||
-                                          await status.isLimited) {
-                                        if (_panelController.isAttached) {
-                                          if (_panelController.isPanelOpen) {
-                                            setState(() {
-                                              panelCloased = true;
-                                            });
-                                            _panelController.close();
-                                          } else {
-                                            setState(() {
-                                              panelCloased = false;
-                                            });
-
-                                            _panelController.open();
-                                          }
-                                        }
-                                      } else {}
-
-                                      // You can can also directly ask the permission about its status.
-                                      if (await Permission
-                                          .location.isRestricted) {
-                                        // The OS restricts access, for example because of parental controls.
-                                      }
-                                    },
-                                    icon: const Icon(
-                                      Icons.multitrack_audio,
-                                      color: Colors.blue,
-                                      size: 17,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    padding: EdgeInsets.zero,
-                                    constraints: BoxConstraints(),
-                                    onPressed: () {
+                                if (await status.isGranted ||
+                                    await status.isLimited) {
+                                  if (_panelController.isAttached) {
+                                    if (_panelController.isPanelOpen) {
                                       setState(() {
-                                        poll = !poll;
+                                        panelCloased = true;
                                       });
-                                    },
-                                    icon: const Icon(
-                                      FontAwesomeIcons.listUl,
-                                      color: Colors.blue,
-                                      size: 17,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    padding: EdgeInsets.zero,
-                                    constraints: BoxConstraints(),
-                                    onPressed: () async {
-                                      if (_numWidgets < 4) {
-                                        final ImagePicker _picker =
-                                            ImagePicker();
-                                        // Pick an image
-                                        XFile? image = null;
-                                        image = await _picker.pickImage(
-                                            source: ImageSource.gallery);
-                                        setState(() {
-                                          _numWidgets += 1;
-                                          imageFiles.add(File(image!.path));
-                                        });
-                                      }
-                                    },
-                                    icon: const Icon(
-                                      FontAwesomeIcons.image,
-                                      color: Colors.blue,
-                                      size: 17,
-                                    ),
-                                  ),
-                                  CharCounter(
-                                      currentChar: currentChar,
-                                      maxChar: maxChar),
-                                ],
+                                      _panelController.close();
+                                    } else {
+                                      setState(() {
+                                        panelCloased = false;
+                                      });
+
+                                      _panelController.open();
+                                    }
+                                  }
+                                } else {}
+
+                                // You can can also directly ask the permission about its status.
+                                if (await Permission.location.isRestricted) {
+                                  // The OS restricts access, for example because of parental controls.
+                                }
+                              },
+                              icon: const Icon(
+                                Icons.multitrack_audio,
+                                color: Colors.blue,
+                                size: 17,
                               ),
                             ),
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: BoxConstraints(),
+                              onPressed: () {
+                                if (_numWidgets == 0) {
+                                  setState(() {
+                                    _numWidgets += 4;
+                                    poll = !poll;
+                                  });
+                                }
+                              },
+                              icon: Icon(
+                                FontAwesomeIcons.listUl,
+                                color: _numWidgets == 0
+                                    ? Colors.blue
+                                    : Color.fromARGB(255, 15, 55, 88),
+                                size: 17,
+                              ),
+                            ),
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: BoxConstraints(),
+                              onPressed: () async {
+                                if (_numWidgets < 4) {
+                                  final ImagePicker _picker = ImagePicker();
+                                  // Pick an image
+                                  XFile? image = await _picker.pickImage(
+                                      source: ImageSource.gallery);
+                                  File fileImage = File(image!.path);
+                                  setState(() {
+                                    _numWidgets += 1;
+                                    imageFiles.add(fileImage);
+                                  });
+
+                                  addImagePath(fileImage.path);
+                                }
+                              },
+                              icon: Icon(
+                                FontAwesomeIcons.image,
+                                color: _numWidgets < 4
+                                    ? Colors.blue
+                                    : const Color.fromARGB(255, 16, 65, 105),
+                                size: 17,
+                              ),
+                            ),
+                            CharCounter(
+                                currentChar: currentChar, maxChar: maxChar),
                           ],
                         ),
                       ),
                     ],
                   ),
-                )
-              : Container(),
-          panelCloased
-              ? Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Column(
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Column(
-                            children: [
-                              ProfileImg(report: report, size: Size(40, 40)),
-                            ],
-                          ),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 8.0),
-                              child: TextField(
-                                autofocus: true,
-                                onChanged: (value) {
-                                  setState(() {
-                                    currentChar = value.length;
-                                    if (0 < value.length &&
-                                        value.length < maxChar) {
-                                      _disabled = false;
-                                    } else {
-                                      _disabled = true;
-                                    }
-                                  });
-                                },
-                                decoration: const InputDecoration(
-                                  contentPadding: EdgeInsets.all(0),
-                                  hintText: "What's happening?",
-                                  border: InputBorder.none,
-                                ),
-                                keyboardType: TextInputType.multiline,
-                                maxLines: null,
+                ),
+              ],
+            ),
+          ),
+          SingleChildScrollView(
+            child: SizedBox(
+              height: panelCloased ? null : 0,
+              child: Padding(
+                padding: const EdgeInsets.all(10.0),
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Column(
+                          children: [
+                            ProfileImg(report: report, size: Size(40, 40)),
+                          ],
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: TextField(
+                              autofocus: true,
+                              onChanged: (value) {
+                                setState(() {
+                                  currentChar = value.length;
+                                  updateText(value);
+                                  if (0 < value.length &&
+                                      value.length < maxChar) {
+                                    _disabled = false;
+                                  } else {
+                                    _disabled = true;
+                                  }
+                                });
+                              },
+                              decoration: const InputDecoration(
+                                contentPadding: EdgeInsets.all(0),
+                                hintText: "What's happening?",
+                                border: InputBorder.none,
                               ),
+                              keyboardType: TextInputType.multiline,
+                              maxLines: null,
                             ),
                           ),
-                        ],
-                      ),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children:
-                              imageFiles.map((e) => ImageWidget(e)).toList(),
                         ),
+                      ],
+                    ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: imageFiles
+                            .map((e) => ImageWidget(e, removeImagePath, e.path))
+                            .toList(),
                       ),
-                      poll
-                          ? PollWidget(
-                              removePoll: removePoll,
-                            )
-                          : Text("")
-                    ],
-                  ),
-                )
-              : Container(),
+                    ),
+                    poll
+                        ? PollWidget(
+                            removePoll: removePoll,
+                            addChoice: addChoice,
+                            initPoll: initPoll,
+                            setLengthTime: setLengthTime,
+                            updateChoice: updateChoice,
+                          )
+                        : Text("")
+                  ],
+                ),
+              ),
+            ),
+          ),
           SlidingUpAudio(
             panelController: _panelController,
             report: report,
+            setAudioUrl: setAudioUrl,
             setPanelCloasedTrue: setPanelCloasedTrue,
           ),
         ],
@@ -264,7 +335,7 @@ class _CreateState extends State<Create> {
     );
   }
 
-  Padding ImageWidget(File e) {
+  Widget ImageWidget(File e, Function removeImageUrl, String path) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: ClipRRect(
@@ -285,7 +356,9 @@ class _CreateState extends State<Create> {
                   backgroundColor: Colors.black87),
               onPressed: () {
                 setState(() {
+                  _numWidgets -= 1;
                   imageFiles.removeWhere((item) => item == e);
+                  removeImageUrl(path);
                 });
               },
               child: Icon(
@@ -300,277 +373,15 @@ class _CreateState extends State<Create> {
   }
 }
 
-class SlidingUpAudio extends StatefulWidget {
-  const SlidingUpAudio({
-    Key? key,
-    required PanelController panelController,
-    required this.report,
-    required this.setPanelCloasedTrue,
-  })  : _panelController = panelController,
-        super(key: key);
-  final void Function()? setPanelCloasedTrue;
-  final PanelController _panelController;
-  final UserData report;
-
-  @override
-  State<SlidingUpAudio> createState() => _SlidingUpAudioState();
-}
-
-class _SlidingUpAudioState extends State<SlidingUpAudio> {
-  bool valid = false;
-  AudioState audioState = AudioState.Stopped;
-
-  String path = 'recording/${Uuid.NAMESPACE_URL}.mp4';
-  Record record = Record();
-  clearState() {
-    setState(() {
-      valid = false;
-      path = 'recording/${Uuid.NAMESPACE_URL}.mp4';
-      record = Record();
-      audioState = AudioState.Stopped;
-    });
-  }
-
-  late Stream<Amplitude> amplitudeStream = record
-      .onAmplitudeChanged(Duration(milliseconds: 100))
-      .asBroadcastStream();
-
-  @override
-  Widget build(BuildContext context) {
-    return SlidingUpPanel(
-      color: Colors.black,
-      onPanelClosed: widget.setPanelCloasedTrue,
-      onPanelOpened: clearState,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
-      maxHeight: 825,
-      minHeight: 0,
-      controller: widget._panelController,
-      panel: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                InkWell(
-                  child: Text("Cancel"),
-                  onTap: () => widget._panelController.close(),
-                ),
-                audioState != AudioState.Stopped
-                    ? Row(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(right: 2.0),
-                            child: SizedBox(
-                              width: 8,
-                              height: 8,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(10)),
-                                  color: audioState == AudioState.Paused
-                                      ? Colors.grey[800]
-                                      : Colors.red,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Text(audioState == AudioState.Paused
-                              ? "Paused"
-                              : "Recording")
-                        ],
-                      )
-                    : Row(),
-                audioState != AudioState.Stopped
-                    ? ElevatedButton(
-                        style: ButtonStyle(
-                          backgroundColor:
-                              MaterialStateProperty.all(Colors.white),
-                          minimumSize: MaterialStateProperty.all(Size(0, 0)),
-                          padding: MaterialStateProperty.all(
-                            EdgeInsets.all(0),
-                          ),
-                          shape: MaterialStateProperty.all(
-                            RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(100),
-                            ),
-                          ),
-                        ),
-                        onPressed: () {
-                          record.stop();
-                          widget._panelController.close();
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                            left: 8.0,
-                            right: 8.0,
-                            top: 4.0,
-                            bottom: 4.0,
-                          ),
-                          child: Text(
-                            "Done",
-                            style: TextStyle(
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                      )
-                    : Row(),
-              ],
-            ),
-          ),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                ProfileSound(amplitudeStream: amplitudeStream, widget: widget),
-                audioState == AudioState.Stopped
-                    ? SizedBox(
-                        height: 38,
-                        child: Column(
-                          children: [
-                            Text(
-                              "What's happening?",
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            Text(
-                              "Hit record.",
-                              style: TextStyle(
-                                color: Colors.grey[800],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : SoundWave(stream: amplitudeStream),
-                FloatingActionButton(
-                  backgroundColor: Color.fromARGB(255, 91, 23, 164),
-                  onPressed: () async {
-                    // Import package\
-                    if (audioState == AudioState.Stopped) {
-                      // Check and request permission
-                      if (await record.hasPermission()) {
-                        // Start recording
-                        await record.start();
-                      }
-                      // Get the state of the recorder
-                      bool isRecording = await record.isRecording();
-                      if (isRecording) {
-                        setState(() {
-                          audioState = AudioState.Recording;
-                        });
-                      }
-                      // Stop recording
-                    } else if (audioState == AudioState.Paused) {
-                      await record.resume();
-
-                      bool isRecording = await record.isRecording();
-                      if (isRecording) {
-                        setState(() {
-                          audioState = AudioState.Recording;
-                        });
-                      }
-                    } else if (audioState == AudioState.Recording) {
-                      await record.pause();
-
-                      bool isPaused = await record.isPaused();
-                      if (isPaused) {
-                        setState(() {
-                          audioState = AudioState.Paused;
-                        });
-                      }
-                    }
-                  },
-                  child: const Ring(
-                    radius: 20,
-                    child: Icon(
-                      color: Colors.white,
-                      FontAwesomeIcons.microphone,
-                      size: 15,
-                    ),
-                  ),
-                )
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ProfileSound extends StatelessWidget {
-  const ProfileSound({
-    Key? key,
-    required this.amplitudeStream,
-    required this.widget,
-  }) : super(key: key);
-
-  final Stream<Amplitude> amplitudeStream;
-  final SlidingUpAudio widget;
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<Amplitude>(
-      stream: amplitudeStream,
-      builder: (context, snapshot) {
-        return Stack(
-          alignment: AlignmentDirectional.center,
-          children: [
-            ProfileImg(
-              report: widget.report,
-              size: Size(100, 100),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class Ring extends StatelessWidget {
-  final double radius;
-
-  final double width;
-  final Widget? child;
-  final Color color;
-
-  const Ring(
-      {Key? key,
-      required this.radius,
-      this.child,
-      this.color = Colors.white,
-      this.width = 1})
-      : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: radius * 2,
-      height: radius * 2,
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: color,
-          width: width,
-        ),
-        shape: BoxShape.circle,
-      ),
-      child: child,
-    );
-  }
-}
-
 class Header extends StatelessWidget implements PreferredSizeWidget {
   const Header({
     Key? key,
-    required bool disabled,
-  })  : _disabled = disabled,
-        super(key: key);
+    required this.disabled,
+    required this.getTweet,
+  });
 
-  final bool _disabled;
-
+  final bool disabled;
+  final Tweet Function() getTweet;
   Size get preferredSize => Size.fromHeight(55);
 
   @override
@@ -597,10 +408,12 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
             child: ElevatedButton(
                 style: ButtonStyle(
                     fixedSize: MaterialStateProperty.all(Size(66, 10)),
-                    backgroundColor: MaterialStateProperty.all(_disabled
+                    backgroundColor: MaterialStateProperty.all(disabled
                         ? Color.fromARGB(92, 3, 168, 244)
                         : Colors.blue)),
-                onPressed: () {},
+                onPressed: () {
+                  FirestoreService().CreateTweet(getTweet());
+                },
                 child: Text(
                   "Spark",
                   style: TextStyle(color: Colors.white, fontSize: 10),

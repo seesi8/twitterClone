@@ -1,32 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 import '../services/models.dart';
 import 'lengthSelector.dart';
 
 class PollWidget extends StatefulWidget {
-  const PollWidget({
+  PollWidget({
     Key? key,
     required this.removePoll,
+    required this.initPoll,
+    required this.addChoice,
+    required this.setLengthTime,
+    required this.updateChoice,
   }) : super(
           key: key,
         );
 
   final Function removePoll;
+  final Function initPoll;
+  final Function updateChoice;
+  final Function addChoice;
+  final Function setLengthTime;
 
   @override
   State<PollWidget> createState() => _PollWidgetState();
 }
 
 class _PollWidgetState extends State<PollWidget> {
-  List<Widget> choices = [
-    choice(index: 1),
+  late List<Widget> Choices = [
+    Choice(
+      index: 0,
+      updateChoice: widget.updateChoice,
+    ),
     Padding(
       padding: const EdgeInsets.only(top: 8.0),
-      child: choice(index: 2),
+      child: Choice(
+        index: 1,
+        updateChoice: widget.updateChoice,
+      ),
     ),
   ];
   num _maxChoices = 4;
   bool pollLengthInputOpen = false;
+  bool valid = false;
   LengthTime lengthTime = LengthTime(hours: 0, days: 1, min: 0);
   @override
   Widget build(BuildContext context) {
@@ -48,7 +64,7 @@ class _PollWidgetState extends State<PollWidget> {
                 children: [
                   Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: choices,
+                    children: Choices,
                   ),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.start,
@@ -69,7 +85,7 @@ class _PollWidgetState extends State<PollWidget> {
                           Icons.close_rounded,
                         ),
                       ),
-                      choices.length < _maxChoices
+                      Choices.length < _maxChoices
                           ? ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                   shape: CircleBorder(),
@@ -78,20 +94,23 @@ class _PollWidgetState extends State<PollWidget> {
                                   backgroundColor:
                                       Color.fromARGB(143, 158, 158, 158)),
                               onPressed: () {
-                                if (choices.length < _maxChoices) {
+                                if (Choices.length < _maxChoices) {
                                   setState(() {
-                                    choices.add(
+                                    Choices.add(
                                       Padding(
                                         padding:
                                             const EdgeInsets.only(top: 8.0),
-                                        child:
-                                            choice(index: choices.length + 1),
+                                        child: Choice(
+                                          index: Choices.length,
+                                          updateChoice: widget.updateChoice,
+                                        ),
                                       ),
                                     );
                                   });
+                                  widget.addChoice("");
                                 }
 
-                                print(choices);
+                                print(Choices);
                               },
                               child: const Icon(
                                 color: Colors.black,
@@ -145,7 +164,7 @@ class _PollWidgetState extends State<PollWidget> {
                           ),
                           onPressed: () {
                             setState(() {
-                              pollLengthInputOpen = true;
+                              pollLengthInputOpen = !pollLengthInputOpen;
                             });
                           },
                           icon: Icon(Icons.keyboard_arrow_up_rounded),
@@ -156,43 +175,45 @@ class _PollWidgetState extends State<PollWidget> {
                 ),
               ),
             ),
-            pollLengthInputOpen
-                ? SizedBox(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8.0, left: 8.0),
-                      child: LengthSelectorGroup(
-                        onItemsChanged: (Map<String, int> values) {
-                          lengthTime = LengthTime(
-                            days: values["days"] ?? 1,
-                            hours: values["hours"] ?? 0,
-                            min: values["min"] ?? 0,
-                          );
-                        },
-                        selectors: const [
-                          LengthSelector(
-                            identifier: "days",
-                            start: 0,
-                            initialItemIndex: 1,
-                            unit: "days",
-                            end: 7,
-                          ),
-                          LengthSelector(
-                            start: 0,
-                            identifier: "hours",
-                            unit: "hours",
-                            end: 23,
-                          ),
-                          LengthSelector(
-                            start: 0,
-                            unit: "min",
-                            identifier: "min",
-                            end: 59,
-                          )
-                        ],
-                      ),
+            SizedBox(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 8.0, left: 8.0),
+                child: LengthSelectorGroup(
+                  hidden: !pollLengthInputOpen,
+                  onItemsChanged: (Map<String, int> values) {
+                    setState(() {
+                      lengthTime = LengthTime(
+                        hours: values["hours"] ?? 0,
+                        days: values["days"] ?? 0,
+                        min: values["min"] ?? 0,
+                      );
+                    });
+                    widget.setLengthTime(lengthTime);
+                  },
+                  selectors: const [
+                    LengthSelector(
+                      identifier: "days",
+                      start: 0,
+                      initialItemIndex: 1,
+                      unit: "days",
+                      end: 7,
                     ),
-                  )
-                : Container(),
+                    LengthSelector(
+                      start: 0,
+                      identifier: "hours",
+                      unit: "hours",
+                      end: 23,
+                    ),
+                    LengthSelector(
+                      start: 0,
+                      unit: "min",
+                      identifier: "min",
+                      end: 59,
+                    )
+                  ],
+                ),
+              ),
+            )
           ],
         ),
       ),
@@ -200,37 +221,85 @@ class _PollWidgetState extends State<PollWidget> {
   }
 }
 
-class choice extends StatelessWidget {
-  const choice({
+class Choice extends StatefulWidget {
+  Choice({
     Key? key,
     required this.index,
+    required this.updateChoice,
   }) : super(key: key);
 
-  final num index;
+  final int index;
+  final Function updateChoice;
 
   @override
+  State<Choice> createState() => _ChoiceState();
+}
+
+class _ChoiceState extends State<Choice> {
+  @override
+  int charLength = 0;
+
   Widget build(BuildContext context) {
+    String uid = const Uuid().v4();
+    TextEditingController _controller = TextEditingController();
+
     return SizedBox(
       height: 50,
       width: 327,
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: "Choice " + index.toString(),
-          fillColor: Colors.white,
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(7)),
-            borderSide: BorderSide(
-              color: Color.fromARGB(70, 158, 158, 158),
-              width: 1.1,
-            ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.all(Radius.circular(7)),
+          border: Border.all(
+            color: Color.fromARGB(70, 158, 158, 158),
+            width: 1.1,
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(7)),
-            borderSide: BorderSide(
-              color: Color.fromARGB(70, 158, 158, 158),
-              width: 1.1,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                keyboardType: TextInputType.text,
+                onChanged: (value) {
+                  setState(() {
+                    charLength = value.length;
+                  });
+                  widget.updateChoice(widget.index, value);
+                  print(charLength);
+                },
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.only(
+                    left: 8.0,
+                    bottom: 8.0,
+                    top: 8.0,
+                  ),
+                  hintText: "Choice ${widget.index.toString()}",
+                  fillColor: Colors.white,
+                  enabledBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Color.fromARGB(0, 158, 158, 158),
+                    ),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(7)),
+                    borderSide: BorderSide(
+                      color: Color.fromARGB(0, 158, 158, 158),
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Text(
+                (25 - charLength).toString(),
+                style: TextStyle(
+                  color: 25 - charLength >= 0
+                      ? const Color.fromARGB(70, 158, 158, 158)
+                      : Color.fromARGB(255, 173, 23, 12),
+                ),
+              ),
+            )
+          ],
         ),
       ),
     );

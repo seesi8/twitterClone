@@ -104,11 +104,11 @@ class LengthTime {
 }
 
 class Poll {
-  final List<String> choices;
-  final LengthTime lengthTime;
+  List<String> choices;
+  LengthTime lengthTime;
 
   Poll({
-    this.choices = const [],
+    required this.choices,
     this.lengthTime = const LengthTime(),
   });
 }
@@ -116,7 +116,7 @@ class Poll {
 class Tweet {
   Poll? poll;
   String text;
-  List<String>? imageUrls;
+  List<String>? imagePaths;
   String? audioUrl;
   DateTime timeSent;
   String authorUid;
@@ -127,7 +127,7 @@ class Tweet {
   Tweet({
     required this.text,
     this.poll,
-    this.imageUrls,
+    this.imagePaths,
     this.audioUrl,
     required this.timeSent,
     required this.authorUid,

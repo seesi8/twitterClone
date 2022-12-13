@@ -86,8 +86,12 @@ class LengthSelectorGroup extends StatelessWidget {
   final List<LengthSelector> selectors;
   final Function(Map<String, int>) onItemsChanged;
 
-  const LengthSelectorGroup(
-      {this.selectors = const [], required this.onItemsChanged});
+  bool hidden;
+
+  LengthSelectorGroup(
+      {this.selectors = const [],
+      required this.onItemsChanged,
+      required this.hidden});
 
   @override
   Widget build(BuildContext context) {
@@ -97,40 +101,49 @@ class LengthSelectorGroup extends StatelessWidget {
       values[element.identifier] = element.start + element.initialItemIndex;
     }));
 
+    double? pollLengthHeight;
+
+    if (hidden) {
+      pollLengthHeight = 0;
+    }
+
     return Stack(
       alignment: AlignmentDirectional.center,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: selectors.map((widget) {
-            returnFunction(String identifer, int value) {
-              if (widget.onSelectedItemChanged != null) {
-                widget.onSelectedItemChanged!(identifer, value);
-              } else {
-                //do nothing
+        SizedBox(
+          height: pollLengthHeight,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: selectors.map((widget) {
+              returnFunction(String identifer, int value) {
+                if (widget.onSelectedItemChanged != null) {
+                  widget.onSelectedItemChanged!(identifer, value);
+                } else {
+                  //do nothing
+                }
+                values[identifer] = value;
+
+                onItemsChanged(values);
               }
-              values[identifer] = value;
 
-              onItemsChanged(values);
-            }
+              LengthSelector widgetCopy = widget;
 
-            LengthSelector widgetCopy = widget;
-
-            return LengthSelector(
-              end: widget.end,
-              start: widget.start,
-              identifier: widget.identifier,
-              key: widget.key,
-              initialItemIndex: widget.initialItemIndex,
-              unit: widget.unit,
-              onSelectedItemChanged: returnFunction,
-              unitStyle: widget.unitStyle,
-              valueStyle: widget.valueStyle,
-              selectionOverlay: widget.selectionOverlay,
-            );
-          }).toList(),
+              return LengthSelector(
+                end: widget.end,
+                start: widget.start,
+                identifier: widget.identifier,
+                key: widget.key,
+                initialItemIndex: widget.initialItemIndex,
+                unit: widget.unit,
+                onSelectedItemChanged: returnFunction,
+                unitStyle: widget.unitStyle,
+                valueStyle: widget.valueStyle,
+                selectionOverlay: widget.selectionOverlay,
+              );
+            }).toList(),
+          ),
         ),
-        LengthSelectorOverlay()
+        !hidden ? LengthSelectorOverlay() : Container()
       ],
     );
   }

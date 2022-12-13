@@ -19,6 +19,8 @@ class FirestoreService {
     return data;
   }
 
+  void CreateTweet(Tweet tweet) {}
+
   Stream<UserData> streamUserData() {
     print("cool");
     return AuthService().userStream.switchMap((user) {
