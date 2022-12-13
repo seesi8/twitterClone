@@ -35,7 +35,6 @@ class _CreateState extends State<Create> {
   num _numWidgets = 0;
   num maxChar = 280;
   num currentChar = 0;
-  bool _disabled = true;
   PanelController _panelController = new PanelController();
   bool panelCloased = true;
   bool poll = false;
@@ -57,7 +56,7 @@ class _CreateState extends State<Create> {
 
   Widget build(BuildContext context) {
     UserData report = Provider.of<UserData>(context);
-    tweet.audioUrl = report.id;
+    tweet.authorUid = report.id;
 
     updateText(String value) {
       tweet.text = value;
@@ -99,8 +98,11 @@ class _CreateState extends State<Create> {
       });
     }
 
-    Tweet getTweet() {
-      return tweet;
+    Stream<Tweet> getTweet() {
+      return Stream<Tweet>.periodic(Duration(milliseconds: 10),
+          (computationCount) {
+        return tweet;
+      });
     }
 
     setLengthTime(LengthTime lengthTime) {
@@ -115,7 +117,6 @@ class _CreateState extends State<Create> {
       appBar: panelCloased
           ? Header(
               getTweet: getTweet,
-              disabled: _disabled,
             )
           : AppBar(
               toolbarHeight: 0,
@@ -260,7 +261,7 @@ class _CreateState extends State<Create> {
           ),
           SingleChildScrollView(
             child: SizedBox(
-              height: panelCloased ? null : 0,
+              height: panelCloased ? null : 0.1,
               child: Padding(
                 padding: const EdgeInsets.all(10.0),
                 child: Column(
@@ -284,10 +285,7 @@ class _CreateState extends State<Create> {
                                   updateText(value);
                                   if (0 < value.length &&
                                       value.length < maxChar) {
-                                    _disabled = false;
-                                  } else {
-                                    _disabled = true;
-                                  }
+                                  } else {}
                                 });
                               },
                               decoration: const InputDecoration(
@@ -376,12 +374,10 @@ class _CreateState extends State<Create> {
 class Header extends StatelessWidget implements PreferredSizeWidget {
   const Header({
     Key? key,
-    required this.disabled,
     required this.getTweet,
   });
 
-  final bool disabled;
-  final Tweet Function() getTweet;
+  final Stream<Tweet> Function() getTweet;
   Size get preferredSize => Size.fromHeight(55);
 
   @override
@@ -401,25 +397,77 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       actions: [
-        Padding(
-          padding: EdgeInsets.only(top: 15, bottom: 15, right: 15),
-          child: ClipRRect(
-            borderRadius: BorderRadius.all(Radius.circular(100.0)),
-            child: ElevatedButton(
-                style: ButtonStyle(
-                    fixedSize: MaterialStateProperty.all(Size(66, 10)),
-                    backgroundColor: MaterialStateProperty.all(disabled
-                        ? Color.fromARGB(92, 3, 168, 244)
-                        : Colors.blue)),
-                onPressed: () {
-                  FirestoreService().CreateTweet(getTweet());
-                },
-                child: Text(
-                  "Spark",
-                  style: TextStyle(color: Colors.white, fontSize: 10),
-                )),
-          ),
-        ),
+        StreamBuilder<Tweet>(
+            stream: getTweet(),
+            builder: (context, snapshot) {
+              bool testIfDisabled(Tweet tweet) {
+                final bool validText =
+                    tweet.text != "" && tweet.text.length < 280;
+                final bool validUid = tweet.authorUid != "";
+                bool validChoices = true;
+                if (tweet.poll != null) {
+                  for (var choice in tweet.poll!.choices) {
+                    if (choice == "" || choice == " ") {
+                      validChoices = false;
+                    }
+                    if (choice.length > 25) {
+                      validChoices = false;
+                    }
+                  }
+                }
+                final bool validDate = tweet.poll != null
+                    ? tweet.poll!.lengthTime.days <= 7 &&
+                        tweet.poll!.lengthTime.hours <= 23 &&
+                        tweet.poll!.lengthTime.min <= 59
+                    : true;
+
+                final finalBool =
+                    validDate && validChoices && validUid && validText;
+                // print(finalBool);
+                // print(finalBool
+                //     ? "true"
+                //     : !validDate
+                //         ? "validDate"
+                //         : !validChoices
+                //             ? "validChoices"
+                //             : !validUid
+                //                 ? "validUid"
+                //                 : "validText");
+                return finalBool;
+              }
+
+              return Padding(
+                padding: EdgeInsets.only(top: 15, bottom: 15, right: 15),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.all(Radius.circular(100.0)),
+                  child: ElevatedButton(
+                      style: ButtonStyle(
+                          fixedSize: MaterialStateProperty.all(Size(66, 10)),
+                          backgroundColor: MaterialStateProperty.all(
+                              !testIfDisabled(snapshot.data ??
+                                      Tweet(
+                                          text: "",
+                                          timeSent: DateTime.now(),
+                                          authorUid: ""))
+                                  ? Color.fromARGB(92, 3, 168, 244)
+                                  : Colors.blue)),
+                      onPressed: () {
+                        FirestoreService().CreateTweet(
+                          snapshot.data ??
+                              Tweet(
+                                text: "",
+                                timeSent: DateTime.now(),
+                                authorUid: "",
+                              ),
+                        );
+                      },
+                      child: Text(
+                        "Spark",
+                        style: TextStyle(color: Colors.white, fontSize: 10),
+                      )),
+                ),
+              );
+            }),
       ],
     );
   }
