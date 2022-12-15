@@ -86,18 +86,19 @@ class _SparksState extends State<Sparks> {
             Container(
               color: Colors.white24,
             ),
-          SingleChildScrollView(
-            child: Column(children: [
-              Spark(),
-              Spark(),
-              Spark(),
-              Spark(),
-              Spark(),
-              Spark(),
-              Spark(),
-              Spark()
-            ]),
-          )
+          StreamBuilder<List<Tweet>>(
+              stream: FirestoreService().streamTweets(report.id),
+              builder: (context, snapshot) {
+                return SingleChildScrollView(
+                  child: Column(
+                    children: snapshot.data != null
+                        ? snapshot.data!.map((e) => Spark(e)).toList()
+                        : [
+                            Text("Unable To Get Tweets"),
+                          ],
+                  ),
+                );
+              })
         ],
       ),
     );

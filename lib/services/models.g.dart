@@ -85,6 +85,63 @@ Map<String, dynamic> _$UserDataToJson(UserData instance) => <String, dynamic>{
       'id': instance.id,
     };
 
+LengthTime _$LengthTimeFromJson(Map<String, dynamic> json) => LengthTime(
+      hours: json['hours'] as num? ?? 0,
+      days: json['days'] as num? ?? 0,
+      min: json['min'] as num? ?? 0,
+    );
+
+Map<String, dynamic> _$LengthTimeToJson(LengthTime instance) =>
+    <String, dynamic>{
+      'hours': instance.hours,
+      'days': instance.days,
+      'min': instance.min,
+    };
+
+Poll _$PollFromJson(Map<String, dynamic> json) => Poll(
+      choices:
+          (json['choices'] as List<dynamic>).map((e) => e as String).toList(),
+      lengthTime: json['lengthTime'] == null
+          ? const LengthTime()
+          : LengthTime.fromJson(json['lengthTime'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$PollToJson(Poll instance) => <String, dynamic>{
+      'choices': instance.choices,
+      'lengthTime': instance.lengthTime,
+    };
+
+Tweet _$TweetFromJson(Map<String, dynamic> json) {
+  var thing = Tweet(
+    text: json['text'] as String,
+    poll: json['poll'] == null
+        ? null
+        : Poll.fromJson(json['poll'] as Map<String, dynamic>),
+    imagePathsOrUrls: (json['imagePathsOrUrls'] as List<dynamic>?)
+        ?.map((e) => e as String)
+        .toList(),
+    audioUrl: json['audioUrl'] as String?,
+    timeSent: DateTime.parse(json['timeSent'] as String),
+    authorUid: json['authorUid'] as String,
+    numComments: json['numComments'] as int? ?? 0,
+    numHearts: json['numHearts'] as int? ?? 0,
+    numRetweets: json['numRetweets'] as int? ?? 0,
+  );
+  return thing;
+}
+
+Map<String, dynamic> _$TweetToJson(Tweet instance) => <String, dynamic>{
+      'poll': instance.poll,
+      'text': instance.text,
+      'imagePathsOrUrls': instance.imagePathsOrUrls,
+      'audioUrl': instance.audioUrl,
+      'timeSent': instance.timeSent.toIso8601String(),
+      'authorUid': instance.authorUid,
+      'numHearts': instance.numHearts,
+      'numComments': instance.numComments,
+      'numRetweets': instance.numRetweets,
+    };
+
 Message _$MessageFromJson(Map<String, dynamic> json) => Message(
       message: json['message'] as String? ?? '',
       sentBy: json['sentBy'] as Map<String, dynamic>? ?? const {},

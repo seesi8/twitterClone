@@ -109,8 +109,6 @@ class _PollWidgetState extends State<PollWidget> {
                                   });
                                   widget.addChoice("");
                                 }
-
-                                print(Choices);
                               },
                               child: const Icon(
                                 color: Colors.black,
@@ -178,39 +176,47 @@ class _PollWidgetState extends State<PollWidget> {
             SizedBox(
               child: Padding(
                 padding: const EdgeInsets.only(right: 8.0, left: 8.0),
-                child: LengthSelectorGroup(
-                  hidden: !pollLengthInputOpen,
-                  onItemsChanged: (Map<String, int> values) {
-                    setState(() {
-                      lengthTime = LengthTime(
-                        hours: values["hours"] ?? 0,
-                        days: values["days"] ?? 0,
-                        min: values["min"] ?? 0,
-                      );
-                    });
-                    widget.setLengthTime(lengthTime);
+                child: ValueListenableBuilder(
+                  builder: (context, value, child) {
+                    return LengthSelectorGroup(
+                      hidden: !pollLengthInputOpen,
+                      onItemsChanged: (String identifer, int values) {
+                        setState(() {
+                          lengthTime = LengthTime(
+                            hours: identifer == "hours"
+                                ? values
+                                : lengthTime.hours,
+                            days:
+                                identifer == "days" ? values : lengthTime.days,
+                            min: identifer == "min" ? values : lengthTime.min,
+                          );
+                          widget.setLengthTime(lengthTime);
+                        });
+                      },
+                      selectors: const [
+                        LengthSelector(
+                          identifier: "days",
+                          start: 0,
+                          initialItemIndex: 1,
+                          unit: "days",
+                          end: 7,
+                        ),
+                        LengthSelector(
+                          start: 0,
+                          identifier: "hours",
+                          unit: "hours",
+                          end: 23,
+                        ),
+                        LengthSelector(
+                          start: 0,
+                          unit: "min",
+                          identifier: "min",
+                          end: 59,
+                        )
+                      ],
+                    );
                   },
-                  selectors: const [
-                    LengthSelector(
-                      identifier: "days",
-                      start: 0,
-                      initialItemIndex: 1,
-                      unit: "days",
-                      end: 7,
-                    ),
-                    LengthSelector(
-                      start: 0,
-                      identifier: "hours",
-                      unit: "hours",
-                      end: 23,
-                    ),
-                    LengthSelector(
-                      start: 0,
-                      unit: "min",
-                      identifier: "min",
-                      end: 59,
-                    )
-                  ],
+                  valueListenable: ValueNotifier(null),
                 ),
               ),
             )
@@ -264,7 +270,6 @@ class _ChoiceState extends State<Choice> {
                     charLength = value.length;
                   });
                   widget.updateChoice(widget.index, value);
-                  print(charLength);
                 },
                 decoration: InputDecoration(
                   contentPadding: const EdgeInsets.only(

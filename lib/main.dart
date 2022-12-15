@@ -34,7 +34,6 @@ class _AppState extends State<MyApp> {
       builder: (context, snapshot) {
         // Check for errors
         if (snapshot.hasError) {
-          print(snapshot.error ?? "hi");
           return const Text('Error', textDirection: TextDirection.ltr);
         }
 

@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:spark/services/auth.dart';
 import 'package:spark/services/models.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:spark/services/storage.dart';
 import 'package:uuid/uuid.dart';
 
 class FirestoreService {
@@ -19,20 +21,46 @@ class FirestoreService {
     return data;
   }
 
-  void CreateTweet(Tweet tweet) {}
+  void CreateTweet(Tweet tweet) async {
+    if (tweet.imagePathsOrUrls != null) {
+      int index = 0;
+      for (String PathOrUrl in tweet.imagePathsOrUrls!) {
+        tweet.imagePathsOrUrls![index] =
+            await StorageService().UploadFile(file: File(PathOrUrl));
+        index += 1;
+      }
+    }
+
+    _db.collection("tweets").doc(Uuid().v4()).set({
+      "text": tweet.text,
+      "timeSent": FieldValue.serverTimestamp(),
+      "poll": tweet.poll != null
+          ? {
+              "choices": tweet.poll!.choices,
+              "lengthTime": {
+                "days": tweet.poll!.lengthTime.days,
+                "hours": tweet.poll!.lengthTime.hours,
+                "min": tweet.poll!.lengthTime.hours,
+              },
+            }
+          : null,
+      "imagePathsOrUrls": tweet.imagePathsOrUrls,
+      "audioUrl": tweet.audioUrl,
+      "authorUid": tweet.authorUid,
+      "numComments": 0,
+      "numHearts": 0,
+      "numRetweets": 0,
+    });
+  }
 
   Stream<UserData> streamUserData() {
-    print("cool");
     return AuthService().userStream.switchMap((user) {
       if (user != null) {
-        print("nn");
         var ref = _db.collection('users').doc(user.uid);
-        print('WHY: ${user.uid}');
         return ref
             .snapshots()
             .map((doc) => UserData.fromJson(doc.data()!, user.uid));
       } else {
-        print("n");
         return Stream.fromIterable([UserData()]);
       }
     });
@@ -48,6 +76,25 @@ class FirestoreService {
     return str;
   }
 
+  Stream<List<Tweet>> streamTweets(String userId) {
+    var ref = _db.collection("tweets").limit(20).orderBy("timeSent");
+
+    return ref.snapshots().map(
+      (event) {
+        print(
+          Tweet.fromJson(event.docs[0].data()),
+        );
+        return event.docs
+            .map(
+              (e) => Tweet.fromJson(
+                e.data(),
+              ),
+            )
+            .toList();
+      },
+    );
+  }
+
   void createUserData(User user) async {
     var ref = _db.collection("users").doc(user.uid);
     final usersRef = _db.collection("users");
@@ -56,10 +103,8 @@ class FirestoreService {
         .orderBy("username")
         .limit(1);
     final querySnapshot = await q.get();
-    print("queryTime");
     String username = "";
-    print(
-        "${querySnapshot.docs.isEmpty}, ${querySnapshot.docs.length}, ${querySnapshot.docs}, ${user.displayName}");
+
     if (querySnapshot.docs.isEmpty) {
       username = user.displayName ?? "";
     } else {

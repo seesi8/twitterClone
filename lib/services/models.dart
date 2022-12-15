@@ -91,18 +91,31 @@ class UserData {
 
 enum AudioState { Recording, Stopped, Paused }
 
+@JsonSerializable()
 class LengthTime {
   final num hours;
   final num days;
   final num min;
+
+  LengthTime from(LengthTime lengthTime) {
+    return LengthTime(
+        hours: lengthTime.hours, days: lengthTime.days, min: lengthTime.min);
+  }
 
   const LengthTime({
     this.hours = 0,
     this.days = 0,
     this.min = 0,
   });
+
+  factory LengthTime.fromJson(Map<String, dynamic> json) {
+    var result = _$LengthTimeFromJson(json);
+    return result;
+  }
+  Map<String, dynamic> toJson() => _$LengthTimeToJson(this);
 }
 
+@JsonSerializable()
 class Poll {
   List<String> choices;
   LengthTime lengthTime;
@@ -111,12 +124,19 @@ class Poll {
     required this.choices,
     this.lengthTime = const LengthTime(),
   });
+
+  factory Poll.fromJson(Map<String, dynamic> json) {
+    var result = _$PollFromJson(json);
+    return result;
+  }
+  Map<String, dynamic> toJson() => _$PollToJson(this);
 }
 
+@JsonSerializable()
 class Tweet {
   Poll? poll;
   String text;
-  List<String>? imagePaths;
+  List<String>? imagePathsOrUrls;
   String? audioUrl;
   DateTime timeSent;
   String authorUid;
@@ -127,7 +147,7 @@ class Tweet {
   Tweet({
     required this.text,
     this.poll,
-    this.imagePaths,
+    this.imagePathsOrUrls,
     this.audioUrl,
     required this.timeSent,
     required this.authorUid,
@@ -135,6 +155,13 @@ class Tweet {
     this.numHearts = 0,
     this.numRetweets = 0,
   });
+
+  factory Tweet.fromJson(Map<String, dynamic> json) {
+    json["timeSent"] = ((json["timeSent"] as Timestamp).toDate().toString());
+    var result = _$TweetFromJson(json);
+    return result;
+  }
+  Map<String, dynamic> toJson() => _$TweetToJson(this);
 }
 
 class LengthTimeChoices {

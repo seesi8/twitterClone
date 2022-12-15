@@ -84,7 +84,7 @@ class LengthSelector extends StatelessWidget {
 
 class LengthSelectorGroup extends StatelessWidget {
   final List<LengthSelector> selectors;
-  final Function(Map<String, int>) onItemsChanged;
+  final Function(String, int) onItemsChanged;
 
   bool hidden;
 
@@ -123,7 +123,7 @@ class LengthSelectorGroup extends StatelessWidget {
                 }
                 values[identifer] = value;
 
-                onItemsChanged(values);
+                onItemsChanged(identifer, value);
               }
 
               LengthSelector widgetCopy = widget;

@@ -63,12 +63,12 @@ class _CreateState extends State<Create> {
     }
 
     addImagePath(String path) {
-      tweet.imagePaths ??= [];
-      tweet.imagePaths!.add(path);
+      tweet.imagePathsOrUrls ??= [];
+      tweet.imagePathsOrUrls!.add(path);
     }
 
     removeImagePath(String path) {
-      tweet.imagePaths!.remove(path);
+      tweet.imagePathsOrUrls!.remove(path);
     }
 
     setAudioUrl(String url) {
@@ -107,7 +107,6 @@ class _CreateState extends State<Create> {
 
     setLengthTime(LengthTime lengthTime) {
       tweet.poll ??= Poll(choices: ["", ""]);
-
       tweet.poll!.lengthTime = lengthTime;
     }
 
@@ -460,6 +459,7 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
                                 authorUid: "",
                               ),
                         );
+                        Navigator.pushNamed(context, "/");
                       },
                       child: Text(
                         "Spark",
