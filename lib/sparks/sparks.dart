@@ -45,7 +45,7 @@ class _SparksState extends State<Sparks> {
                   return InkWell(
                     child: ProfileImg(
                       size: Size(30, 30),
-                      report: report,
+                      report: report.profileIMG != null ? report : UserData(),
                     ),
                     onTap: () {
                       Scaffold.of(context).openDrawer();
@@ -53,9 +53,14 @@ class _SparksState extends State<Sparks> {
                   );
                 },
               ),
-              Icon(
-                FontAwesomeIcons.boltLightning,
-                color: Colors.lightBlue[300],
+              InkWell(
+                onTap: () {
+                  Navigator.pushNamed(context, "/");
+                },
+                child: Icon(
+                  FontAwesomeIcons.boltLightning,
+                  color: Colors.lightBlue[300],
+                ),
               ),
               Icon(FontAwesomeIcons.star)
             ],
@@ -86,13 +91,13 @@ class _SparksState extends State<Sparks> {
             Container(
               color: Colors.white24,
             ),
-          StreamBuilder<List<Tweet>>(
+          StreamBuilder<List<Future<Tweet>>>(
               stream: FirestoreService().streamTweets(report.id),
               builder: (context, snapshot) {
                 return SingleChildScrollView(
                   child: Column(
                     children: snapshot.data != null
-                        ? snapshot.data!.map((e) => Spark(e)).toList()
+                        ? snapshot.data!.map((e) => Spark(tweet: e)).toList()
                         : [
                             Text("Unable To Get Tweets"),
                           ],

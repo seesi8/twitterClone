@@ -99,8 +99,13 @@ Map<String, dynamic> _$LengthTimeToJson(LengthTime instance) =>
     };
 
 Poll _$PollFromJson(Map<String, dynamic> json) => Poll(
-      choices:
-          (json['choices'] as List<dynamic>).map((e) => e as String).toList(),
+      choices: (json['choices'] as List<dynamic>)
+          .map((e) => Map<String, int>.from(e as Map))
+          .toList(),
+      voters: (json['voters'] as List<dynamic>?)
+              ?.map((e) => Voter.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
       lengthTime: json['lengthTime'] == null
           ? const LengthTime()
           : LengthTime.fromJson(json['lengthTime'] as Map<String, dynamic>),
@@ -108,27 +113,36 @@ Poll _$PollFromJson(Map<String, dynamic> json) => Poll(
 
 Map<String, dynamic> _$PollToJson(Poll instance) => <String, dynamic>{
       'choices': instance.choices,
+      'voters': instance.voters,
       'lengthTime': instance.lengthTime,
     };
 
-Tweet _$TweetFromJson(Map<String, dynamic> json) {
-  var thing = Tweet(
-    text: json['text'] as String,
-    poll: json['poll'] == null
-        ? null
-        : Poll.fromJson(json['poll'] as Map<String, dynamic>),
-    imagePathsOrUrls: (json['imagePathsOrUrls'] as List<dynamic>?)
-        ?.map((e) => e as String)
-        .toList(),
-    audioUrl: json['audioUrl'] as String?,
-    timeSent: DateTime.parse(json['timeSent'] as String),
-    authorUid: json['authorUid'] as String,
-    numComments: json['numComments'] as int? ?? 0,
-    numHearts: json['numHearts'] as int? ?? 0,
-    numRetweets: json['numRetweets'] as int? ?? 0,
-  );
-  return thing;
-}
+Voter _$VoterFromJson(Map<String, dynamic> json) => Voter(
+      user: json['user'] as String,
+      choice: json['choice'] as int,
+    );
+
+Map<String, dynamic> _$VoterToJson(Voter instance) => <String, dynamic>{
+      'user': instance.user,
+      'choice': instance.choice,
+    };
+
+Tweet _$TweetFromJson(Map<String, dynamic> json) => Tweet(
+      text: json['text'] as String,
+      poll: json['poll'] == null
+          ? null
+          : Poll.fromJson(json['poll'] as Map<String, dynamic>),
+      imagePathsOrUrls: (json['imagePathsOrUrls'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
+      audioUrl: json['audioUrl'] as String?,
+      timeSent: DateTime.parse(json['timeSent'] as String),
+      authorUid: json['authorUid'] as String,
+      numComments: json['numComments'] as int? ?? 0,
+      numHearts: json['numHearts'] as int? ?? 0,
+      numRetweets: json['numRetweets'] as int? ?? 0,
+      id: json['id'] as String? ?? "",
+    );
 
 Map<String, dynamic> _$TweetToJson(Tweet instance) => <String, dynamic>{
       'poll': instance.poll,
@@ -139,6 +153,7 @@ Map<String, dynamic> _$TweetToJson(Tweet instance) => <String, dynamic>{
       'authorUid': instance.authorUid,
       'numHearts': instance.numHearts,
       'numComments': instance.numComments,
+      'id': instance.id,
       'numRetweets': instance.numRetweets,
     };
 

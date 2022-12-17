@@ -14,14 +14,46 @@ import 'package:uuid/uuid.dart';
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  Future<dynamic> getUsers(String user) async {
+  Future<UserData?> getUser(String user) async {
     var ref = _db.collection('users').doc(user);
     var snapshot = await ref.get();
-    var data = snapshot.data() as Map<String, dynamic>;
-    return data;
+    var data = snapshot.data();
+    if (data != null) {
+      return UserData.fromJson(data, snapshot.id);
+    }
+  }
+
+  void AddToPoll(String choice, String id, String uid, int index) {
+    var ref = _db
+        .collection('tweets')
+        .doc(id)
+        .collection("choices")
+        .doc(index.toString());
+    var ref2 = _db.collection('tweets').doc(id).collection("voters").doc(uid);
+    var forceUpdateRef = _db.collection("tweets").doc(id);
+    var batch = _db.batch();
+    var forceUpdateStapshot =
+        batch.update(forceUpdateRef, {"totalVotes": FieldValue.increment(1)});
+    var snapshot = batch.update(
+      ref,
+      {
+        "${choice}": FieldValue.increment(1),
+      },
+    );
+    var snapshot2 = batch.set(
+      ref2,
+      {
+        "choice": index,
+        "user": uid,
+      },
+    );
+
+    batch.commit();
   }
 
   void CreateTweet(Tweet tweet) async {
+    var batch = _db.batch();
+    String uuid = Uuid().v4();
     if (tweet.imagePathsOrUrls != null) {
       int index = 0;
       for (String PathOrUrl in tweet.imagePathsOrUrls!) {
@@ -30,13 +62,11 @@ class FirestoreService {
         index += 1;
       }
     }
-
-    _db.collection("tweets").doc(Uuid().v4()).set({
+    batch.set(_db.collection("tweets").doc(uuid), {
       "text": tweet.text,
       "timeSent": FieldValue.serverTimestamp(),
       "poll": tweet.poll != null
           ? {
-              "choices": tweet.poll!.choices,
               "lengthTime": {
                 "days": tweet.poll!.lengthTime.days,
                 "hours": tweet.poll!.lengthTime.hours,
@@ -51,6 +81,22 @@ class FirestoreService {
       "numHearts": 0,
       "numRetweets": 0,
     });
+
+    int index = 0;
+
+    if (tweet.poll != null) {
+      tweet.poll!.choices.forEach((e) {
+        batch.set(
+            _db.collection("tweets").doc(uuid).collection("choices").doc(
+                  index.toString(),
+                ),
+            e);
+
+        index += 1;
+      });
+    }
+
+    batch.commit();
   }
 
   Stream<UserData> streamUserData() {
@@ -76,23 +122,27 @@ class FirestoreService {
     return str;
   }
 
-  Stream<List<Tweet>> streamTweets(String userId) {
+  Stream<List<Future<Tweet>>> streamTweets(String userId) {
     var ref = _db.collection("tweets").limit(20).orderBy("timeSent");
 
-    return ref.snapshots().map(
-      (event) {
-        print(
-          Tweet.fromJson(event.docs[0].data()),
+    return ref.snapshots().map((event) {
+      return event.docs.map((e) async {
+        var choicesRef =
+            _db.collection("tweets").doc(e.id).collection("choices");
+        var votersRef = _db.collection("tweets").doc(e.id).collection("voters");
+        var tweet = Tweet.fromJson(
+          e.data(),
+          e.id,
+          (await choicesRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList(),
+          (await votersRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList(),
         );
-        return event.docs
-            .map(
-              (e) => Tweet.fromJson(
-                e.data(),
-              ),
-            )
-            .toList();
-      },
-    );
+        return tweet;
+      }).toList();
+    });
   }
 
   void createUserData(User user) async {

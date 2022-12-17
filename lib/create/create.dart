@@ -76,18 +76,27 @@ class _CreateState extends State<Create> {
     }
 
     initPoll() {
-      tweet.poll = Poll(choices: ["", ""]);
+      tweet.poll = Poll(choices: [
+        {"": 0},
+        {"": 0}
+      ]);
     }
 
     addChoice(String choice) {
-      tweet.poll ??= Poll(choices: ["", ""]);
-      tweet.poll!.choices.add(choice);
+      tweet.poll ??= Poll(choices: [
+        {"": 0},
+        {"": 0}
+      ]);
+      tweet.poll!.choices.add({choice: 0});
     }
 
     updateChoice(int index, String value) {
-      tweet.poll ??= Poll(choices: ["", ""]);
+      tweet.poll ??= Poll(choices: [
+        {"": 0},
+        {"": 0}
+      ]);
 
-      tweet.poll!.choices[index] = value;
+      tweet.poll!.choices[index] = {value: 0};
     }
 
     removePoll() {
@@ -106,7 +115,10 @@ class _CreateState extends State<Create> {
     }
 
     setLengthTime(LengthTime lengthTime) {
-      tweet.poll ??= Poll(choices: ["", ""]);
+      tweet.poll ??= Poll(choices: [
+        {"": 0},
+        {"": 0}
+      ]);
       tweet.poll!.lengthTime = lengthTime;
     }
 

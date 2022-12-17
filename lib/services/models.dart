@@ -117,12 +117,16 @@ class LengthTime {
 
 @JsonSerializable()
 class Poll {
-  List<String> choices;
+  List<Map<String, int>> choices;
+  List<Voter> voters;
   LengthTime lengthTime;
+  int totalVotes;
 
   Poll({
     required this.choices,
-    this.lengthTime = const LengthTime(),
+    this.totalVotes = 0,
+    this.voters = const [],
+    this.lengthTime = const LengthTime(days: 1),
   });
 
   factory Poll.fromJson(Map<String, dynamic> json) {
@@ -130,6 +134,24 @@ class Poll {
     return result;
   }
   Map<String, dynamic> toJson() => _$PollToJson(this);
+}
+
+@JsonSerializable()
+class Voter {
+  String user;
+
+  int choice;
+
+  Voter({
+    required this.user,
+    required this.choice,
+  });
+
+  factory Voter.fromJson(Map<String, dynamic> json) {
+    var result = _$VoterFromJson(json);
+    return result;
+  }
+  Map<String, dynamic> toJson() => _$VoterToJson(this);
 }
 
 @JsonSerializable()
@@ -142,6 +164,7 @@ class Tweet {
   String authorUid;
   int numHearts;
   int numComments;
+  String id;
   int numRetweets;
 
   Tweet({
@@ -154,10 +177,18 @@ class Tweet {
     this.numComments = 0,
     this.numHearts = 0,
     this.numRetweets = 0,
+    this.id = "",
   });
 
-  factory Tweet.fromJson(Map<String, dynamic> json) {
+  factory Tweet.fromJson(Map<String, dynamic> json, String id,
+      List<Map<String, dynamic>>? choices, List<Map<String, dynamic>>? voters) {
     json["timeSent"] = ((json["timeSent"] as Timestamp).toDate().toString());
+    json["id"] = id;
+    if (json["poll"] != null) {
+      json["poll"]["voters"] = voters;
+      json["poll"]["choices"] = choices;
+    }
+
     var result = _$TweetFromJson(json);
     return result;
   }
