@@ -20,6 +20,7 @@ class _SparksState extends State<Sparks> {
 
   Widget build(BuildContext context) {
     var report = Provider.of<UserData>(context);
+    var currentStream = FirestoreService().streamTweets(report.id);
 
     return Scaffold(
       onDrawerChanged: (isOpened) {
@@ -92,9 +93,21 @@ class _SparksState extends State<Sparks> {
               color: Colors.white24,
             ),
           StreamBuilder<List<Future<Tweet>>>(
-              stream: FirestoreService().streamTweets(report.id),
+              stream: currentStream,
               builder: (context, snapshot) {
+                ScrollController _scrollController = ScrollController();
+                _scrollController.addListener(() {
+                  if (_scrollController.offset <=
+                          _scrollController.position.minScrollExtent &&
+                      !_scrollController.position.outOfRange) {
+                    setState(() {
+                      Navigator.pushNamedAndRemoveUntil(
+                          context, "/", (route) => false);
+                    });
+                  }
+                });
                 return SingleChildScrollView(
+                  controller: _scrollController,
                   child: Column(
                     children: snapshot.data != null
                         ? snapshot.data!.map((e) => Spark(tweet: e)).toList()

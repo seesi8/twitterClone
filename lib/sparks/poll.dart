@@ -26,7 +26,7 @@ class _VoteablePollState extends State<VoteablePoll> {
   LengthTime lengthTime = LengthTime(hours: 0, days: 1, min: 0);
   @override
   Widget build(BuildContext context) {
-    int totalVotes = 0;
+    int totalVotes = 1;
     int highestVotes = 0;
 
     widget.poll.choices.forEach((element) {
@@ -49,7 +49,6 @@ class _VoteablePollState extends State<VoteablePoll> {
     }
 
     UserData report = Provider.of<UserData>(context);
-
     return SizedBox(
       height: (widget.poll.choices.length * 50) + 14,
       child: Padding(
@@ -122,7 +121,7 @@ class _VoteablePollState extends State<VoteablePoll> {
                               SizedBox(
                                 width: 300,
                                 child: Text(
-                                  '${((choice.value.values.toList()[0] / totalVotes) * 100).toInt()}%',
+                                  '${((choice.value.values.toList()[0] / totalVotes) * 100) != 1 / 0 ? ((choice.value.values.toList()[0] / totalVotes) * 100).toInt() : 0}%',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.normal,
                                   ),

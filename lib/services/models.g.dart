@@ -102,12 +102,13 @@ Poll _$PollFromJson(Map<String, dynamic> json) => Poll(
       choices: (json['choices'] as List<dynamic>)
           .map((e) => Map<String, int>.from(e as Map))
           .toList(),
+      totalVotes: json['totalVotes'] as int? ?? 0,
       voters: (json['voters'] as List<dynamic>?)
               ?.map((e) => Voter.fromJson(e as Map<String, dynamic>))
               .toList() ??
-          [],
+          const [],
       lengthTime: json['lengthTime'] == null
-          ? const LengthTime()
+          ? const LengthTime(days: 1)
           : LengthTime.fromJson(json['lengthTime'] as Map<String, dynamic>),
     );
 
@@ -115,6 +116,7 @@ Map<String, dynamic> _$PollToJson(Poll instance) => <String, dynamic>{
       'choices': instance.choices,
       'voters': instance.voters,
       'lengthTime': instance.lengthTime,
+      'totalVotes': instance.totalVotes,
     };
 
 Voter _$VoterFromJson(Map<String, dynamic> json) => Voter(
@@ -128,6 +130,14 @@ Map<String, dynamic> _$VoterToJson(Voter instance) => <String, dynamic>{
     };
 
 Tweet _$TweetFromJson(Map<String, dynamic> json) => Tweet(
+      hearedBy: (json['hearedBy'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      retweetedBy: (json['retweetedBy'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       text: json['text'] as String,
       poll: json['poll'] == null
           ? null
@@ -155,6 +165,8 @@ Map<String, dynamic> _$TweetToJson(Tweet instance) => <String, dynamic>{
       'numComments': instance.numComments,
       'id': instance.id,
       'numRetweets': instance.numRetweets,
+      'hearedBy': instance.hearedBy,
+      'retweetedBy': instance.retweetedBy,
     };
 
 Message _$MessageFromJson(Map<String, dynamic> json) => Message(

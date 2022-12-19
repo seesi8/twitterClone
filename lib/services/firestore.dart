@@ -123,22 +123,35 @@ class FirestoreService {
   }
 
   Stream<List<Future<Tweet>>> streamTweets(String userId) {
-    var ref = _db.collection("tweets").limit(20).orderBy("timeSent");
+    var ref = _db
+        .collection("tweets")
+        .limit(20)
+        .orderBy("timeSent", descending: true);
 
     return ref.snapshots().map((event) {
       return event.docs.map((e) async {
         var choicesRef =
             _db.collection("tweets").doc(e.id).collection("choices");
         var votersRef = _db.collection("tweets").doc(e.id).collection("voters");
+        var heartedRef =
+            _db.collection("tweets").doc(e.id).collection("hearedBy");
+        var retweetedRef =
+            _db.collection("tweets").doc(e.id).collection("retweetedBy");
         var tweet = Tweet.fromJson(
           e.data(),
-          e.id,
-          (await choicesRef.get()).docs.map((doc) {
+          id: e.id,
+          choices: (await choicesRef.get()).docs.map((doc) {
             return doc.data();
           }).toList(),
-          (await votersRef.get()).docs.map((doc) {
+          voters: ((await votersRef.get()).docs.map((doc) {
             return doc.data();
-          }).toList(),
+          }).toList()),
+          hearedBy: ((await heartedRef.get()).docs.map((doc) {
+            return (doc.data())["user"] as String;
+          }).toList()),
+          retweetedBy: ((await retweetedRef.get()).docs.map((doc) {
+            return (doc.data())["user"] as String;
+          }).toList()),
         );
         return tweet;
       }).toList();

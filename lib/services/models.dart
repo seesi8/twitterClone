@@ -166,8 +166,12 @@ class Tweet {
   int numComments;
   String id;
   int numRetweets;
+  List<String> hearedBy;
+  List<String> retweetedBy;
 
   Tweet({
+    this.hearedBy = const [],
+    this.retweetedBy = const [],
     required this.text,
     this.poll,
     this.imagePathsOrUrls,
@@ -180,8 +184,14 @@ class Tweet {
     this.id = "",
   });
 
-  factory Tweet.fromJson(Map<String, dynamic> json, String id,
-      List<Map<String, dynamic>>? choices, List<Map<String, dynamic>>? voters) {
+  factory Tweet.fromJson(
+    Map<String, dynamic> json, {
+    required String id,
+    List<Map<String, dynamic>>? choices,
+    List<Map<String, dynamic>>? voters,
+    List<String> hearedBy = const [],
+    List<String> retweetedBy = const [],
+  }) {
     json["timeSent"] = ((json["timeSent"] as Timestamp).toDate().toString());
     json["id"] = id;
     if (json["poll"] != null) {
