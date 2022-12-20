@@ -21,14 +21,16 @@ import '../services/storage.dart';
 import '../shared/poll.dart';
 import '../shared/sound.dart';
 
-class Create extends StatefulWidget {
-  const Create({super.key});
+class Comment extends StatefulWidget {
+  const Comment({super.key, required this.tweet});
+
+  final Tweet tweet;
 
   @override
-  State<Create> createState() => _CreateState();
+  State<Comment> createState() => _CommentState();
 }
 
-class _CreateState extends State<Create> {
+class _CommentState extends State<Comment> {
   @override
   List<File> imageFiles = [];
   num _numWidgets = 0;
@@ -126,6 +128,7 @@ class _CreateState extends State<Create> {
           panelCloased ? Colors.black : Color.fromARGB(255, 40, 37, 37),
       appBar: panelCloased
           ? Header(
+              id: widget.tweet.id,
               getTweet: getTweet,
             )
           : AppBar(
@@ -276,6 +279,25 @@ class _CreateState extends State<Create> {
                 padding: const EdgeInsets.all(10.0),
                 child: Column(
                   children: [
+                    FutureBuilder<UserData?>(
+                        future: FirestoreService().getUser(tweet.authorUid),
+                        builder: (context, snapshot) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Row(
+                              children: [
+                                Text(
+                                  "Replying to ",
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                                Text(
+                                  "@${snapshot.data?.username}",
+                                  style: TextStyle(color: Colors.blue),
+                                )
+                              ],
+                            ),
+                          );
+                        }),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -300,7 +322,7 @@ class _CreateState extends State<Create> {
                               },
                               decoration: const InputDecoration(
                                 contentPadding: EdgeInsets.all(0),
-                                hintText: "What's happening?",
+                                hintText: "Tweet your reply",
                                 border: InputBorder.none,
                               ),
                               keyboardType: TextInputType.multiline,
@@ -382,8 +404,11 @@ class _CreateState extends State<Create> {
 }
 
 class Header extends StatelessWidget implements PreferredSizeWidget {
+  final String id;
+
   const Header({
     Key? key,
+    required this.id,
     required this.getTweet,
   });
 
@@ -462,14 +487,14 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
                                   ? Color.fromARGB(92, 3, 168, 244)
                                   : Colors.blue)),
                       onPressed: () {
-                        FirestoreService().CreateTweet(
-                          snapshot.data ??
-                              Tweet(
-                                text: "",
-                                timeSent: DateTime.now(),
-                                authorUid: "",
-                              ),
-                        );
+                        FirestoreService().CreateComment(
+                            snapshot.data ??
+                                Tweet(
+                                  text: "",
+                                  timeSent: DateTime.now(),
+                                  authorUid: "",
+                                ),
+                            id);
                         Navigator.pushNamed(context, "/");
                       },
                       child: Text(

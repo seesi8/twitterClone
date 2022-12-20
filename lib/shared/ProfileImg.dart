@@ -21,7 +21,9 @@ class ProfileImg extends StatelessWidget {
         borderRadius: BorderRadius.all(Radius.circular(300.0)),
         child: Image.network(
           fit: BoxFit.fill,
-          report.profileIMG,
+          report.profileIMG != "" || report.profileIMG != null
+              ? report.profileIMG
+              : defaultImageURL,
           width: size.width,
           height: size.height,
         ),

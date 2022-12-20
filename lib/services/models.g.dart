@@ -71,6 +71,8 @@ UserData _$UserDataFromJson(Map<String, dynamic> json) => UserData(
       username: json['username'] as String? ?? '',
       profileIMG: json['profileIMG'] as String? ?? '',
       followers: json['followers'] as int? ?? 0,
+      description: json['description'] as String? ?? '',
+      dateJoined: DateTime.parse(json['dateJoined'] as String),
       following: json['following'] as int? ?? 0,
       id: json['id'] as String? ?? '',
     );
@@ -78,6 +80,8 @@ UserData _$UserDataFromJson(Map<String, dynamic> json) => UserData(
 Map<String, dynamic> _$UserDataToJson(UserData instance) => <String, dynamic>{
       'displayName': instance.displayName,
       'email': instance.email,
+      'description': instance.description,
+      'dateJoined': instance.dateJoined.toIso8601String(),
       'profileIMG': instance.profileIMG,
       'followers': instance.followers,
       'following': instance.following,
@@ -129,13 +133,23 @@ Map<String, dynamic> _$VoterToJson(Voter instance) => <String, dynamic>{
       'choice': instance.choice,
     };
 
+Retweet _$RetweetFromJson(Map<String, dynamic> json) => Retweet(
+      user: json['user'] as String,
+      parent: json['parent'] as String,
+    );
+
+Map<String, dynamic> _$RetweetToJson(Retweet instance) => <String, dynamic>{
+      'user': instance.user,
+      'parent': instance.parent,
+    };
+
 Tweet _$TweetFromJson(Map<String, dynamic> json) => Tweet(
-      hearedBy: (json['hearedBy'] as List<dynamic>?)
+      heartedBuy: (json['heartedBuy'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const [],
       retweetedBy: (json['retweetedBy'] as List<dynamic>?)
-              ?.map((e) => e as String)
+              ?.map((e) => Retweet.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
       text: json['text'] as String,
@@ -148,6 +162,7 @@ Tweet _$TweetFromJson(Map<String, dynamic> json) => Tweet(
       audioUrl: json['audioUrl'] as String?,
       timeSent: DateTime.parse(json['timeSent'] as String),
       authorUid: json['authorUid'] as String,
+      retweeted: json['retweeted'] as UserData?,
       numComments: json['numComments'] as int? ?? 0,
       numHearts: json['numHearts'] as int? ?? 0,
       numRetweets: json['numRetweets'] as int? ?? 0,
@@ -163,9 +178,10 @@ Map<String, dynamic> _$TweetToJson(Tweet instance) => <String, dynamic>{
       'authorUid': instance.authorUid,
       'numHearts': instance.numHearts,
       'numComments': instance.numComments,
+      'retweeted': instance.retweeted,
       'id': instance.id,
       'numRetweets': instance.numRetweets,
-      'hearedBy': instance.hearedBy,
+      'heartedBuy': instance.heartedBuy,
       'retweetedBy': instance.retweetedBy,
     };
 

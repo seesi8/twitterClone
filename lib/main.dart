@@ -41,7 +41,7 @@ class _AppState extends State<MyApp> {
         if (snapshot.connectionState == ConnectionState.done) {
           return StreamProvider(
             create: (_) => FirestoreService().streamUserData(),
-            initialData: UserData(),
+            initialData: UserData(dateJoined: DateTime.now()),
             child: MaterialApp(
               routes: appRoutes,
               theme: appTheme,

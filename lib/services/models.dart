@@ -66,23 +66,30 @@ class Username {
 class UserData {
   String displayName;
   String email;
+  String description;
+  DateTime dateJoined;
   String profileIMG;
   int followers;
   int following;
   String username;
   String id;
 
-  UserData(
-      {this.displayName = '',
-      this.email = '',
-      this.username = '',
-      this.profileIMG = '',
-      this.followers = 0,
-      this.following = 0,
-      this.id = ''});
+  UserData({
+    this.displayName = '',
+    this.email = '',
+    this.username = '',
+    this.profileIMG = '',
+    this.followers = 0,
+    this.description = '',
+    required this.dateJoined,
+    this.following = 0,
+    this.id = '',
+  });
 
-  factory UserData.fromJson(Map<String, dynamic> json, String id) {
+  factory UserData.fromJson(Map<String, dynamic> json, {required String id}) {
     json["id"] = id;
+    json["dateJoined"] =
+        ((json["dateJoined"] as Timestamp).toDate().toString());
     var result = _$UserDataFromJson(json);
     return result;
   }
@@ -155,6 +162,24 @@ class Voter {
 }
 
 @JsonSerializable()
+class Retweet {
+  String user;
+
+  String parent;
+
+  Retweet({
+    required this.user,
+    required this.parent,
+  });
+
+  factory Retweet.fromJson(Map<String, dynamic> json) {
+    var result = _$RetweetFromJson(json);
+    return result;
+  }
+  Map<String, dynamic> toJson() => _$RetweetToJson(this);
+}
+
+@JsonSerializable()
 class Tweet {
   Poll? poll;
   String text;
@@ -164,13 +189,14 @@ class Tweet {
   String authorUid;
   int numHearts;
   int numComments;
+  UserData? retweeted;
   String id;
   int numRetweets;
-  List<String> hearedBy;
-  List<String> retweetedBy;
+  List<String> heartedBuy;
+  List<Retweet> retweetedBy;
 
   Tweet({
-    this.hearedBy = const [],
+    this.heartedBuy = const [],
     this.retweetedBy = const [],
     required this.text,
     this.poll,
@@ -178,6 +204,7 @@ class Tweet {
     this.audioUrl,
     required this.timeSent,
     required this.authorUid,
+    this.retweeted,
     this.numComments = 0,
     this.numHearts = 0,
     this.numRetweets = 0,
@@ -189,8 +216,9 @@ class Tweet {
     required String id,
     List<Map<String, dynamic>>? choices,
     List<Map<String, dynamic>>? voters,
-    List<String> hearedBy = const [],
-    List<String> retweetedBy = const [],
+    List<Map<String, dynamic>>? retweetedBy = const [],
+    UserData? retweeted,
+    List<String> heartedBuy = const [],
   }) {
     json["timeSent"] = ((json["timeSent"] as Timestamp).toDate().toString());
     json["id"] = id;
@@ -198,6 +226,10 @@ class Tweet {
       json["poll"]["voters"] = voters;
       json["poll"]["choices"] = choices;
     }
+
+    json["heartedBuy"] = heartedBuy;
+    json["retweetedBy"] = retweetedBy;
+    json["retweeted"] = retweeted;
 
     var result = _$TweetFromJson(json);
     return result;

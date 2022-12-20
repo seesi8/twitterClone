@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:spark/services/firestore.dart';
 import 'package:spark/sparks/spark.dart';
 
+import '../acount/acount.dart';
 import '../services/models.dart';
 import '../shared/ProfileImg.dart';
 
@@ -46,7 +47,11 @@ class _SparksState extends State<Sparks> {
                   return InkWell(
                     child: ProfileImg(
                       size: Size(30, 30),
-                      report: report.profileIMG != null ? report : UserData(),
+                      report: report.profileIMG != null
+                          ? report
+                          : UserData(
+                              dateJoined: DateTime.now(),
+                              profileIMG: defaultImageURL),
                     ),
                     onTap: () {
                       Scaffold.of(context).openDrawer();
@@ -106,6 +111,7 @@ class _SparksState extends State<Sparks> {
                     });
                   }
                 });
+
                 return SingleChildScrollView(
                   controller: _scrollController,
                   child: Column(
@@ -228,19 +234,30 @@ class AccountDrawer extends StatelessWidget {
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: Row(
-                    children: const [
-                      Padding(
-                        padding: const EdgeInsets.only(right: 20.0),
-                        child: Icon(Icons.message),
+                InkWell(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (BuildContext context) => Account(
+                          user: report,
+                        ),
                       ),
-                      Text(
-                        "Topics",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      )
-                    ],
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 20.0),
+                    child: Row(
+                      children: const [
+                        Padding(
+                          padding: const EdgeInsets.only(right: 20.0),
+                          child: Icon(Icons.message),
+                        ),
+                        Text(
+                          "Topics",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        )
+                      ],
+                    ),
                   ),
                 ),
                 Padding(
