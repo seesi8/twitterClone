@@ -130,7 +130,9 @@ class Login extends StatelessWidget {
                         )),
                         backgroundColor:
                             MaterialStateProperty.all(Colors.white)),
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.pushNamed(context, "/createAccount");
+                    },
                     child: Center(
                       child: Padding(
                         padding: const EdgeInsets.all(10.0),

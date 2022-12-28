@@ -47,7 +47,10 @@ class _SparkBigState extends State<SparkBig> {
       // Check the length of the duration
       if (duration.inDays >= 7) {
         // Return the local date string for dates that are more than a week old
-        return date.toLocal().toString();
+        var formatter = new DateFormat(
+            'MM/dd/yyyy'); // create a formatter with the desired format
+        var formattedDate = formatter.format(date); // format the date using the
+        return formattedDate;
       } else if (duration.inDays >= 1) {
         // Return the number of whole days
         return '-${duration.inDays}d-';
@@ -97,14 +100,10 @@ class _SparkBigState extends State<SparkBig> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(
-                            width: 40,
-                            height: 40,
-                            child: ClipRRect(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(100.0)),
-                              child: Image.network(user.profileIMG),
-                            ),
+                          ProfileImg(
+                            profileImg: user.profileIMG,
+                            size: Size(40, 40),
+                            report: user,
                           ),
                           Expanded(
                             child: Column(

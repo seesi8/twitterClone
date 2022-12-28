@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:spark/services/firestore.dart';
 import 'package:spark/services/models.dart';
 import 'package:spark/shared/ProfileImg.dart';
+import 'package:intl/intl.dart';
 import 'package:spark/sparks/images.dart';
 import 'package:spark/sparks/poll.dart';
 
@@ -35,7 +36,10 @@ class _SparkState extends State<Spark> {
       // Check the length of the duration
       if (duration.inDays >= 7) {
         // Return the local date string for dates that are more than a week old
-        return date.toLocal().toString();
+        var formatter = new DateFormat(
+            'MM/dd/yyyy'); // create a formatter with the desired format
+        var formattedDate = formatter.format(date); // format the date using the
+        return formattedDate;
       } else if (duration.inDays >= 1) {
         // Return the number of whole days
         return '-${duration.inDays}d-';

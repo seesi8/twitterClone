@@ -303,7 +303,10 @@ class _CommentState extends State<Comment> {
                       children: [
                         Column(
                           children: [
-                            ProfileImg(report: report, size: Size(40, 40)),
+                            ProfileImg(
+                                report: report,
+                                profileImg: report.profileIMG,
+                                size: Size(40, 40)),
                           ],
                         ),
                         Expanded(

@@ -237,9 +237,9 @@ class _CreateState extends State<Create> {
                               constraints: BoxConstraints(),
                               onPressed: () async {
                                 if (_numWidgets < 4) {
-                                  final ImagePicker _picker = ImagePicker();
+                                  final ImagePicker picker = ImagePicker();
                                   // Pick an image
-                                  XFile? image = await _picker.pickImage(
+                                  XFile? image = await picker.pickImage(
                                       source: ImageSource.gallery);
                                   File fileImage = File(image!.path);
                                   setState(() {
@@ -281,7 +281,10 @@ class _CreateState extends State<Create> {
                       children: [
                         Column(
                           children: [
-                            ProfileImg(report: report, size: Size(40, 40)),
+                            ProfileImg(
+                                report: report,
+                                profileImg: report.profileIMG,
+                                size: Size(40, 40)),
                           ],
                         ),
                         Expanded(

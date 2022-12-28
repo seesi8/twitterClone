@@ -117,6 +117,18 @@ class ActionButtons extends StatelessWidget {
   }
 }
 
+String numberToString(int number) {
+  if (number >= 1000000000) {
+    return '${(number / 1000000000).toStringAsFixed(1)}b';
+  } else if (number >= 1000000) {
+    return '${(number / 1000000).toStringAsFixed(1)}m';
+  } else if (number >= 1000) {
+    return '${(number / 1000).toStringAsFixed(1)}k';
+  } else {
+    return number.toString();
+  }
+}
+
 class AudioWidget extends StatefulWidget {
   final Tweet tweet;
 
@@ -208,6 +220,7 @@ class _AudioWidgetState extends State<AudioWidget> {
                     Center(
                       child: ProfileImg(
                         report: widget.user,
+                        profileImg: widget.user.profileIMG,
                         size: Size(75, 75),
                       ),
                     ),

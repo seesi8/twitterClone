@@ -11,6 +11,7 @@ import 'package:spark/services/auth.dart';
 import 'package:spark/services/models.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:spark/services/storage.dart';
+import 'package:spark/shared/ProfileImg.dart';
 import 'package:uuid/uuid.dart';
 
 class FirestoreService {
@@ -22,7 +23,6 @@ class FirestoreService {
     var data = snapshot.data();
     if (data != null) {
       var userData = UserData.fromJson(data, id: snapshot.id);
-      print("hi");
       return userData;
     }
   }
@@ -215,7 +215,7 @@ class FirestoreService {
         .collection("tweets")
         .doc(id)
         .collection("comments")
-        .limit(20)
+        .limit(7)
         .orderBy("timeSent", descending: true);
 
     var tweets = ref.snapshots().map((event) {
@@ -251,10 +251,8 @@ class FirestoreService {
   }
 
   Stream<List<Future<Tweet>>> streamTweets(String userId) {
-    var ref = _db
-        .collection("tweets")
-        .limit(20)
-        .orderBy("timeSent", descending: true);
+    var ref =
+        _db.collection("tweets").limit(7).orderBy("timeSent", descending: true);
 
     var tweets = ref.snapshots().map((event) {
       return event.docs.map((e) async {
@@ -285,7 +283,8 @@ class FirestoreService {
       }).toList();
     });
 
-    var retweets = _db.collectionGroup("retweetedBy").snapshots().map((event) {
+    var retweets =
+        _db.collectionGroup("retweetedBy").limit(7).snapshots().map((event) {
       return event.docs.map((e) async {
         var parent = Retweet.fromJson(e.data()).parent;
         var user = await _db
@@ -336,11 +335,557 @@ class FirestoreService {
     return combinedStream;
   }
 
+  Stream<List<Future<Tweet>>> streamUserTweets(String userId) {
+    var ref = _db
+        .collection("tweets")
+        .where("authorUid", isEqualTo: userId)
+        .limit(7)
+        .orderBy("timeSent", descending: true);
+
+    var tweets = ref.snapshots().map((event) {
+      return event.docs.map((e) async {
+        var choicesRef =
+            _db.collection("tweets").doc(e.id).collection("choices");
+        var votersRef = _db.collection("tweets").doc(e.id).collection("voters");
+        var heartedRef =
+            _db.collection("tweets").doc(e.id).collection("heartedBuy");
+        var retweetedRef =
+            _db.collection("tweets").doc(e.id).collection("retweetedBy");
+        var tweet = Tweet.fromJson(
+          e.data(),
+          id: e.id,
+          choices: (await choicesRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList(),
+          voters: ((await votersRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList()),
+          heartedBuy: ((await heartedRef.get()).docs.map((doc) {
+            return (doc.data())["user"] as String;
+          }).toList()),
+          retweetedBy: ((await retweetedRef.get()).docs.map((doc) {
+            return (doc.data());
+          }).toList()),
+        );
+        return tweet;
+      }).toList();
+    });
+
+    var retweets = _db
+        .collectionGroup("retweetedBy")
+        .where("user", isEqualTo: userId)
+        .limit(7)
+        .snapshots()
+        .map((event) {
+      return event.docs.map((e) async {
+        var parent = Retweet.fromJson(e.data()).parent;
+        var user = await _db
+            .collection("users")
+            .doc(Retweet.fromJson(e.data()).user)
+            .get();
+
+        var parentsRef = _db.collection("tweets").doc(parent);
+
+        var parentData = await parentsRef.get();
+
+        var choicesRef =
+            _db.collection("tweets").doc(parent).collection("choices");
+        var votersRef =
+            _db.collection("tweets").doc(parent).collection("voters");
+        var heartedRef =
+            _db.collection("tweets").doc(parent).collection("heartedBuy");
+        var retweetedRef =
+            _db.collection("tweets").doc(parent).collection("retweetedBy");
+        var tweet = Tweet.fromJson(
+          parentData.data()!,
+          id: parent,
+          choices: (await choicesRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList(),
+          voters: ((await votersRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList()),
+          heartedBuy: ((await heartedRef.get()).docs.map((doc) {
+            return (doc.data())["user"] as String;
+          }).toList()),
+          retweetedBy: ((await retweetedRef.get()).docs.map((doc) {
+            return (doc.data());
+          }).toList()),
+          retweeted: UserData.fromJson(user.data()!, id: user.id),
+        );
+        return tweet;
+      }).toList();
+    });
+
+    Stream<List<Future<Tweet>>> combinedStream = Stream.fromFuture(Future.wait([
+      tweets.first,
+      retweets.first,
+    ]).then((lists) {
+      return lists[0]..addAll(lists[1]);
+    }));
+
+    return combinedStream;
+  }
+
+  Stream<List<Future<Tweet>>> streamUserMedia(String userId) {
+    //audio
+
+    var refMedia = _db
+        .collection("tweets")
+        .where("authorUid", isEqualTo: userId)
+        .where("imagePathsOrUrls", isNull: false)
+        .limit(7);
+
+    var tweets = refMedia.snapshots().map((event) {
+      return event.docs.map((e) async {
+        var choicesRef =
+            _db.collection("tweets").doc(e.id).collection("choices");
+        var votersRef = _db.collection("tweets").doc(e.id).collection("voters");
+        var heartedRef =
+            _db.collection("tweets").doc(e.id).collection("heartedBuy");
+        var retweetedRef =
+            _db.collection("tweets").doc(e.id).collection("retweetedBy");
+        var tweet = Tweet.fromJson(
+          e.data(),
+          id: e.id,
+          choices: (await choicesRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList(),
+          voters: ((await votersRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList()),
+          heartedBuy: ((await heartedRef.get()).docs.map((doc) {
+            return (doc.data())["user"] as String;
+          }).toList()),
+          retweetedBy: ((await retweetedRef.get()).docs.map((doc) {
+            return (doc.data());
+          }).toList()),
+        );
+        return tweet;
+      }).toList();
+    });
+
+    var retweets = _db
+        .collectionGroup("retweetedBy")
+        .where("imagePathsOrUrls", isNull: false)
+        .where("user", isEqualTo: userId)
+        .limit(7)
+        .snapshots()
+        .map((event) {
+      return event.docs.map((e) async {
+        var parent = Retweet.fromJson(e.data()).parent;
+        var user = await _db
+            .collection("users")
+            .doc(Retweet.fromJson(e.data()).user)
+            .get();
+
+        var parentsRef = _db.collection("tweets").doc(parent);
+
+        var parentData = await parentsRef.get();
+
+        var choicesRef =
+            _db.collection("tweets").doc(parent).collection("choices");
+        var votersRef =
+            _db.collection("tweets").doc(parent).collection("voters");
+        var heartedRef =
+            _db.collection("tweets").doc(parent).collection("heartedBuy");
+        var retweetedRef =
+            _db.collection("tweets").doc(parent).collection("retweetedBy");
+        var tweet = Tweet.fromJson(
+          parentData.data()!,
+          id: parent,
+          choices: (await choicesRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList(),
+          voters: ((await votersRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList()),
+          heartedBuy: ((await heartedRef.get()).docs.map((doc) {
+            return (doc.data())["user"] as String;
+          }).toList()),
+          retweetedBy: ((await retweetedRef.get()).docs.map((doc) {
+            return (doc.data());
+          }).toList()),
+          retweeted: UserData.fromJson(user.data()!, id: user.id),
+        );
+        return tweet;
+      }).toList();
+    });
+
+    //media
+
+    var mediaRef = _db
+        .collection("tweets")
+        .where("authorUid", isEqualTo: userId)
+        .where("audioUrl", isNull: false)
+        .limit(7);
+
+    var mediaTweets = mediaRef.snapshots().map((event) {
+      return event.docs.map((e) async {
+        var choicesRef =
+            _db.collection("tweets").doc(e.id).collection("choices");
+        var votersRef = _db.collection("tweets").doc(e.id).collection("voters");
+        var heartedRef =
+            _db.collection("tweets").doc(e.id).collection("heartedBuy");
+        var retweetedRef =
+            _db.collection("tweets").doc(e.id).collection("retweetedBy");
+        var tweet = Tweet.fromJson(
+          e.data(),
+          id: e.id,
+          choices: (await choicesRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList(),
+          voters: ((await votersRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList()),
+          heartedBuy: ((await heartedRef.get()).docs.map((doc) {
+            return (doc.data())["user"] as String;
+          }).toList()),
+          retweetedBy: ((await retweetedRef.get()).docs.map((doc) {
+            return (doc.data());
+          }).toList()),
+        );
+        return tweet;
+      }).toList();
+    });
+
+    var mediaRetweets = _db
+        .collectionGroup("retweetedBy")
+        .where("user", isEqualTo: userId)
+        .where("audioUrl", isNull: false)
+        .limit(7)
+        .snapshots()
+        .map((event) {
+      return event.docs.map((e) async {
+        var parent = Retweet.fromJson(e.data()).parent;
+        var user = await _db
+            .collection("users")
+            .doc(Retweet.fromJson(e.data()).user)
+            .get();
+
+        var parentsRef = _db.collection("tweets").doc(parent);
+
+        var parentData = await parentsRef.get();
+
+        var choicesRef =
+            _db.collection("tweets").doc(parent).collection("choices");
+        var votersRef =
+            _db.collection("tweets").doc(parent).collection("voters");
+        var heartedRef =
+            _db.collection("tweets").doc(parent).collection("heartedBuy");
+        var retweetedRef =
+            _db.collection("tweets").doc(parent).collection("retweetedBy");
+        var tweet = Tweet.fromJson(
+          parentData.data()!,
+          id: parent,
+          choices: (await choicesRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList(),
+          voters: ((await votersRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList()),
+          heartedBuy: ((await heartedRef.get()).docs.map((doc) {
+            return (doc.data())["user"] as String;
+          }).toList()),
+          retweetedBy: ((await retweetedRef.get()).docs.map((doc) {
+            return (doc.data());
+          }).toList()),
+          retweeted: UserData.fromJson(user.data()!, id: user.id),
+        );
+        return tweet;
+      }).toList();
+    });
+
+    Stream<List<Future<Tweet>>> combinedStream = Stream.fromFuture(Future.wait([
+      tweets.first,
+      retweets.first,
+      mediaTweets.first,
+      mediaRetweets.first,
+    ]).then((lists) {
+      return lists[0]
+        ..addAll(lists[1])
+        ..addAll(lists[2])
+        ..addAll(lists[3]);
+    }));
+
+    return combinedStream;
+  }
+
+  Stream<List<Future<Tweet>>> streamUserLikes(String userId) {
+    var ref = _db
+        .collectionGroup("heartedBuy")
+        .where("user", isEqualTo: userId)
+        .limit(7);
+
+    return ref.snapshots().map(
+          (event) => event.docs.map(
+            (e) async {
+              var parent = await e.reference.parent.parent?.get();
+
+              var choicesRef = _db
+                  .collection("tweets")
+                  .doc(parent?.id ?? "")
+                  .collection("choices");
+              var votersRef = _db
+                  .collection("tweets")
+                  .doc(parent?.id ?? "")
+                  .collection("voters");
+              var heartedRef = _db
+                  .collection("tweets")
+                  .doc(parent?.id ?? "")
+                  .collection("heartedBuy");
+              var retweetedRef = _db
+                  .collection("tweets")
+                  .doc(parent?.id ?? "")
+                  .collection("retweetedBy");
+              var tweet = Tweet.fromJson(
+                parent?.data() ??
+                    Tweet(text: "", timeSent: DateTime.now(), authorUid: "")
+                        .toJson(),
+                id: parent?.id ?? "",
+                choices: (await choicesRef.get()).docs.map((doc) {
+                  return doc.data();
+                }).toList(),
+                voters: ((await votersRef.get()).docs.map((doc) {
+                  return doc.data();
+                }).toList()),
+                heartedBuy: ((await heartedRef.get()).docs.map((doc) {
+                  return (doc.data())["user"] as String;
+                }).toList()),
+                retweetedBy: ((await retweetedRef.get()).docs.map((doc) {
+                  return (doc.data());
+                }).toList()),
+              );
+              return tweet;
+            },
+          ).toList(),
+        );
+  }
+
+  Stream<List<Future<Tweet>>> streamUserTweetsAndComments(String userId) {
+    var ref = _db
+        .collection("tweets")
+        .where("authorUid", isEqualTo: userId)
+        .limit(7)
+        .orderBy("timeSent", descending: true);
+
+    var tweets = ref.snapshots().map((event) {
+      return event.docs.map((e) async {
+        var choicesRef =
+            _db.collection("tweets").doc(e.id).collection("choices");
+        var votersRef = _db.collection("tweets").doc(e.id).collection("voters");
+        var heartedRef =
+            _db.collection("tweets").doc(e.id).collection("heartedBuy");
+        var retweetedRef =
+            _db.collection("tweets").doc(e.id).collection("retweetedBy");
+        var tweet = Tweet.fromJson(
+          e.data(),
+          id: e.id,
+          choices: (await choicesRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList(),
+          voters: ((await votersRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList()),
+          heartedBuy: ((await heartedRef.get()).docs.map((doc) {
+            return (doc.data())["user"] as String;
+          }).toList()),
+          retweetedBy: ((await retweetedRef.get()).docs.map((doc) {
+            return (doc.data());
+          }).toList()),
+        );
+        return tweet;
+      }).toList();
+    });
+
+    var commentsRef = _db
+        .collectionGroup("comments")
+        .where("authorUid", isEqualTo: userId)
+        .limit(7)
+        .orderBy("timeSent", descending: true);
+
+    var comments = commentsRef.snapshots().map((event) {
+      return event.docs.map((e) async {
+        var choicesRef =
+            _db.collection("tweets").doc(e.id).collection("choices");
+        var votersRef = _db.collection("tweets").doc(e.id).collection("voters");
+        var heartedRef =
+            _db.collection("tweets").doc(e.id).collection("heartedBuy");
+        var retweetedRef =
+            _db.collection("tweets").doc(e.id).collection("retweetedBy");
+        var tweet = Tweet.fromJson(
+          e.data(),
+          id: e.id,
+          choices: (await choicesRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList(),
+          voters: ((await votersRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList()),
+          heartedBuy: ((await heartedRef.get()).docs.map((doc) {
+            return (doc.data())["user"] as String;
+          }).toList()),
+          retweetedBy: ((await retweetedRef.get()).docs.map((doc) {
+            return (doc.data());
+          }).toList()),
+        );
+        return tweet;
+      }).toList();
+    });
+
+    var retweets = _db
+        .collectionGroup("retweetedBy")
+        .where("user", isEqualTo: userId)
+        .limit(20)
+        .snapshots()
+        .map((event) {
+      return event.docs.map((e) async {
+        var parent = Retweet.fromJson(e.data()).parent;
+        var user = await _db
+            .collection("users")
+            .doc(Retweet.fromJson(e.data()).user)
+            .get();
+
+        var parentsRef = _db.collection("tweets").doc(parent);
+
+        var parentData = await parentsRef.get();
+
+        var choicesRef =
+            _db.collection("tweets").doc(parent).collection("choices");
+        var votersRef =
+            _db.collection("tweets").doc(parent).collection("voters");
+        var heartedRef =
+            _db.collection("tweets").doc(parent).collection("heartedBuy");
+        var retweetedRef =
+            _db.collection("tweets").doc(parent).collection("retweetedBy");
+        var tweet = Tweet.fromJson(
+          parentData.data()!,
+          id: parent,
+          choices: (await choicesRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList(),
+          voters: ((await votersRef.get()).docs.map((doc) {
+            return doc.data();
+          }).toList()),
+          heartedBuy: ((await heartedRef.get()).docs.map((doc) {
+            return (doc.data())["user"] as String;
+          }).toList()),
+          retweetedBy: ((await retweetedRef.get()).docs.map((doc) {
+            return (doc.data());
+          }).toList()),
+          retweeted: UserData.fromJson(user.data()!, id: user.id),
+        );
+        return tweet;
+      }).toList();
+    });
+
+    Stream<List<Future<Tweet>>> combinedStream = Stream.fromFuture(Future.wait([
+      tweets.first,
+      retweets.first,
+      comments.first,
+    ]).then((lists) {
+      return lists[0]
+        ..addAll(lists[1])
+        ..addAll(lists[2]);
+    }));
+
+    return combinedStream;
+  }
+
+  Future<String> getUniqueUsername({required String username}) async {
+    String uniqueUsername = "";
+
+    final usersRef = _db.collection("users");
+    final q = usersRef
+        .where("preUsername", isEqualTo: removeSpacesAndMakeLowerCase(username))
+        .orderBy("username")
+        .limit(1);
+    final querySnapshot = await q.get();
+
+    if (querySnapshot.docs.isEmpty) {
+      uniqueUsername = username;
+    } else {
+      querySnapshot.docs.forEach((doc) {
+        String index = UserData.fromJson(doc.data(), id: doc.id)
+            .username
+            .split(username)[1];
+        if (index == "0") {
+          index = "0";
+        }
+        uniqueUsername = '${username}${(int.parse(index) + 1).toString()}';
+      });
+    }
+    return uniqueUsername;
+  }
+
+  Future<bool> checkUniqueUsername({required String username}) async {
+    final usersRef = _db.collection("users");
+    final q = usersRef
+        .where("preUsername", isEqualTo: removeSpacesAndMakeLowerCase(username))
+        .orderBy("username")
+        .limit(1);
+    final querySnapshot = await q.get();
+
+    if (querySnapshot.docs.isEmpty) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  Future<List<String>> getSuggestedUsernames(
+      {required String email, required String name}) async {
+    bool isPhone = true;
+
+    var usernames = List.filled(6, "", growable: false);
+    final phoneRegex = RegExp(
+        r'^(?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9])\s*\)|([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9]))\s*(?:[.-]\s*)?)?([2-9]1[02-9]|[2-9][02-9]1|[2-9][02-9]{2})\s*(?:[.-]\s*)?([0-9]{4})(?:\s*(?:#|x\.?|ext\.?|extension)\s*(\d+))?$');
+
+    // Regular expression for an email
+    final emailRegex = RegExp(
+        r'^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$');
+
+    if (phoneRegex.matchAsPrefix(email) != null) {
+      isPhone = true;
+    } else if (emailRegex.matchAsPrefix(email) != null) {
+      isPhone = false;
+    } else {
+      isPhone = true;
+    }
+
+    usernames[0] = await getUniqueUsername(
+        username: !isPhone ? email.split("@")[0] : '${name}_');
+    usernames[1] = await getUniqueUsername(username: name);
+    usernames[2] = await getUniqueUsername(
+        username: name.split(" ").length > 1 ? name.split(" ")[0] : 'the$name');
+    usernames[3] = await getUniqueUsername(
+        username: name.split(" ").length > 1
+            ? name.split(" ")[1]
+            : !isPhone
+                ? '${email.split("@")[0]}_$name'
+                : '_${name}_');
+    usernames[4] = await getUniqueUsername(
+        username: name.split(" ").length > 1
+            ? '${name.split(" ")[0]}_${name.split(" ")[1]}'
+            : !isPhone
+                ? 'the${email.split("@")[0]}_$name'
+                : '${name}${DateTime.now().year}');
+    usernames[5] = await getUniqueUsername(
+        username: name.split(" ").length > 1
+            ? '${name.split(" ")[1]}_${name.split(" ")[0]}'
+            : !isPhone
+                ? '${name}_${email.split("@")[0]}'
+                : '${name}_${DateTime.now().year}');
+
+    return usernames;
+  }
+
   void createUserData(User user) async {
     var ref = _db.collection("users").doc(user.uid);
     final usersRef = _db.collection("users");
     final q = usersRef
-        .where("displayName", isEqualTo: user.displayName)
+        .where("preUsername",
+            isEqualTo: removeSpacesAndMakeLowerCase(user.displayName ?? ""))
         .orderBy("username")
         .limit(1);
     final querySnapshot = await q.get();
@@ -356,7 +901,7 @@ class FirestoreService {
         if (index == "0") {
           index = "0";
         }
-        username = 'displayName ${(int.parse(index) + 1).toString()}';
+        username = '${user.displayName}${(int.parse(index) + 1).toString()}';
       });
     }
 
@@ -369,6 +914,201 @@ class FirestoreService {
       "following": 0,
       "username": removeSpacesAndMakeLowerCase(username),
       "profileIMG": user.photoURL,
+      "phone": user.phoneNumber,
+      "preUsername": removeSpacesAndMakeLowerCase(user.displayName ?? ""),
     });
+
+    _db.collection("userRecomendations").doc(user.uid).set(
+      {
+        "user": user.uid,
+      },
+    );
+  }
+
+  void createUserDataFromCustom(
+    User user, {
+    required String name,
+    required String phoneOrEmail,
+    required List<String> subTopics,
+    required List<String> topics,
+    required File? profileIMG,
+    required String password,
+    required String? username,
+    required DateTime dob,
+    required List<String> followers,
+  }) async {
+    var ref = _db.collection("users").doc(user.uid);
+    final usersRef = _db.collection("users");
+
+    String updatedUsername = "";
+
+    if (username != null) {
+      print(username);
+      final q = usersRef
+          .where("preUsername",
+              isEqualTo: removeSpacesAndMakeLowerCase(username ?? ""))
+          .orderBy("username")
+          .limit(1);
+      final querySnapshot = await q.get();
+
+      if (querySnapshot.docs.isEmpty) {
+        updatedUsername = username ?? "";
+      } else {
+        querySnapshot.docs.forEach((doc) {
+          String index = UserData.fromJson(doc.data(), id: doc.id)
+              .username
+              .split(username ?? "")[1];
+          if (index == "0") {
+            index = "0";
+          }
+          updatedUsername = '$username${(int.parse(index) + 1).toString()}';
+        });
+      }
+    } else {
+      final q = usersRef
+          .where("preUsername",
+              isEqualTo: removeSpacesAndMakeLowerCase(name ?? ""))
+          .orderBy("username")
+          .limit(1);
+      final querySnapshot = await q.get();
+
+      if (querySnapshot.docs.isEmpty) {
+        updatedUsername = name ?? "";
+      } else {
+        querySnapshot.docs.forEach((doc) {
+          String index = UserData.fromJson(doc.data(), id: doc.id)
+              .username
+              .split(name ?? "")[1];
+          if (index == "0") {
+            index = "0";
+          }
+          updatedUsername = '$name${(int.parse(index) + 1).toString()}';
+        });
+      }
+    }
+
+    print('hi: $updatedUsername');
+
+    String photoURL = defaultImageURL;
+
+    if (profileIMG != null) {
+      photoURL = await StorageService().UploadFile(file: profileIMG);
+    }
+
+    ref.set({
+      "displayName": name,
+      "email": user.email ?? user.phoneNumber,
+      "description": "Just Joined Spark Social",
+      "dateJoined": FieldValue.serverTimestamp(),
+      "followers": 0,
+      "following": 1,
+      "username": removeSpacesAndMakeLowerCase(updatedUsername),
+      "profileIMG": photoURL,
+      "phone": user.phoneNumber ?? user.email,
+      "preUsername": removeSpacesAndMakeLowerCase(username ?? name),
+    });
+
+    followers.forEach((element) {
+      follow(user.uid, element);
+    });
+
+    _db.collection("userRecomendations").doc(user.uid).set(
+      {
+        "user": user.uid,
+        "subTopics": subTopics,
+        "topics": topics,
+        "dob": dob,
+      },
+    );
+  }
+
+  void unFollowTopic(String userId, String topic) {
+    _db.collection("userRecomendations").doc(userId).update({
+      "topics": FieldValue.arrayRemove([topic]),
+      "subTopics": FieldValue.arrayRemove([topic]),
+    });
+  }
+
+  Stream<bool> isFollowing(String fromUserUid, String toUserUid) {
+    return _db
+        .collection("users")
+        .doc(fromUserUid)
+        .collection("following")
+        .doc(toUserUid)
+        .snapshots()
+        .map((event) => event.exists);
+  }
+
+  void unFollow(String fromUserUid, String toUserUid) async {
+    print('$fromUserUid : $toUserUid');
+    await _db.collection("users").doc(fromUserUid).update({
+      "following": FieldValue.increment(-1),
+    });
+
+    await _db.collection("users").doc(toUserUid).update({
+      "followers": FieldValue.increment(-1),
+    });
+
+    await _db
+        .collection("users")
+        .doc(fromUserUid)
+        .collection("following")
+        .doc(toUserUid)
+        .delete();
+
+    return;
+  }
+
+  Stream<List<String>> getAllTopics(String userUid) {
+    return (_db
+        .collection("userRecomendations")
+        .doc(userUid)
+        .snapshots()
+        .map((event) {
+      if (event.data() != null) {
+        print("not null");
+
+        var dataTyped = UserRecomendation.fromJson(event.data() ?? {});
+
+        var subTopics = dataTyped.subTopics;
+        print(' hu $subTopics');
+
+        var topics = dataTyped.topics;
+        var subTopicsList = subTopics.toList();
+
+        subTopicsList.addAll(topics);
+        return subTopicsList;
+      } else {
+        print("null");
+        return [];
+      }
+    }));
+  }
+
+  void follow(String fromUserUid, String toUserUid) async {
+    await _db.collection("users").doc(fromUserUid).update({
+      "following": FieldValue.increment(1),
+    });
+    await _db.collection("users").doc(toUserUid).update({
+      "followers": FieldValue.increment(1),
+    });
+
+    await _db
+        .collection("users")
+        .doc(fromUserUid)
+        .collection("following")
+        .doc(toUserUid)
+        .set({
+      "follower": fromUserUid,
+      "following": toUserUid,
+    });
+  }
+
+  Future<List<UserData>> getSuggestedFollowers() async {
+    var data = await _db.collection('users').orderBy("followers").get();
+
+    return data.docs
+        .map((doc) => UserData.fromJson(doc.data(), id: doc.id))
+        .toList();
   }
 }

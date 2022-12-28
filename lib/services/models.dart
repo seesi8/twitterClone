@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:json_annotation/json_annotation.dart';
 part 'models.g.dart';
 
@@ -63,19 +64,45 @@ class Username {
 }
 
 @JsonSerializable()
+class UserRecomendation {
+  List<String> topics;
+  List<String> subTopics;
+  String user;
+  DateTime? dob;
+
+  UserRecomendation({
+    this.topics = const [],
+    this.subTopics = const [],
+    this.user = '',
+    this.dob,
+  });
+
+  factory UserRecomendation.fromJson(Map<String, dynamic> json) {
+    json["dob"] = ((json["dob"] as Timestamp).toDate().toString());
+
+    return _$UserRecomendationFromJson(json);
+  }
+  Map<String, dynamic> toJson() => _$UserRecomendationToJson(this);
+}
+
+@JsonSerializable()
 class UserData {
   String displayName;
   String email;
+  String phone;
   String description;
   DateTime dateJoined;
   String profileIMG;
   int followers;
   int following;
   String username;
+  String preUsername;
   String id;
 
   UserData({
     this.displayName = '',
+    this.preUsername = '',
+    this.phone = '',
     this.email = '',
     this.username = '',
     this.profileIMG = '',
@@ -97,6 +124,10 @@ class UserData {
 }
 
 enum AudioState { Recording, Stopped, Paused }
+
+enum AccountTab { Tweets, TweetsAndReplies, Media, Likes }
+
+enum TopicsTab { Followed, Suggested, Not_Interested }
 
 @JsonSerializable()
 class LengthTime {

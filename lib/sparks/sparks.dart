@@ -7,6 +7,7 @@ import 'package:spark/sparks/spark.dart';
 import '../acount/acount.dart';
 import '../services/models.dart';
 import '../shared/ProfileImg.dart';
+import '../shared/sharedSparkTools.dart';
 
 class Sparks extends StatefulWidget {
   const Sparks({super.key});
@@ -47,11 +48,9 @@ class _SparksState extends State<Sparks> {
                   return InkWell(
                     child: ProfileImg(
                       size: Size(30, 30),
-                      report: report.profileIMG != null
-                          ? report
-                          : UserData(
-                              dateJoined: DateTime.now(),
-                              profileIMG: defaultImageURL),
+                      profileImg: report.profileIMG != null
+                          ? report.profileIMG
+                          : defaultImageURL,
                     ),
                     onTap: () {
                       Scaffold.of(context).openDrawer();
@@ -129,18 +128,6 @@ class _SparksState extends State<Sparks> {
   }
 }
 
-String numberToString(int number) {
-  if (number >= 1000000000) {
-    return '${(number / 1000000000).toStringAsFixed(1)}b';
-  } else if (number >= 1000000) {
-    return '${(number / 1000000).toStringAsFixed(1)}m';
-  } else if (number >= 1000) {
-    return '${(number / 1000).toStringAsFixed(1)}k';
-  } else {
-    return number.toString();
-  }
-}
-
 class AccountDrawer extends StatelessWidget {
   const AccountDrawer({
     Key? key,
@@ -165,7 +152,10 @@ class AccountDrawer extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ProfileImg(report: report, size: Size(35, 35)),
+                    ProfileImg(
+                        report: report,
+                        profileImg: report.profileIMG,
+                        size: Size(35, 35)),
                     Text("Samuel Liebert"),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),
@@ -213,27 +203,11 @@ class AccountDrawer extends StatelessWidget {
                     )
                   ],
                 ),
-                Icon(FontAwesomeIcons.userPlus)
               ],
             ),
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
               child: Column(children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: Row(
-                    children: const [
-                      Padding(
-                        padding: const EdgeInsets.only(right: 20.0),
-                        child: Icon(FontAwesomeIcons.user),
-                      ),
-                      Text(
-                        "Profile",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      )
-                    ],
-                  ),
-                ),
                 InkWell(
                   onTap: () {
                     Navigator.of(context).push(
@@ -243,6 +217,26 @@ class AccountDrawer extends StatelessWidget {
                         ),
                       ),
                     );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 20.0),
+                    child: Row(
+                      children: const [
+                        Padding(
+                          padding: const EdgeInsets.only(right: 20.0),
+                          child: Icon(FontAwesomeIcons.user),
+                        ),
+                        Text(
+                          "Profile",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: () {
+                    Navigator.pushNamed(context, "/topics");
                   },
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 20.0),
@@ -330,7 +324,7 @@ class AccountDrawer extends StatelessWidget {
                           )
                         ]),
                         onTap: () {
-                          // Handle tap on item 1
+                          Navigator.pushNamed(context, "/settings");
                         },
                       ),
                       ListTile(

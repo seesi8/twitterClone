@@ -254,6 +254,7 @@ class ProfileSound extends StatelessWidget {
           children: [
             ProfileImg(
               report: widget.report,
+              profileImg: widget.report.profileIMG,
               size: Size(100, 100),
             ),
           ],

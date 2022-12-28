@@ -65,8 +65,32 @@ Map<String, dynamic> _$UsernameToJson(Username instance) => <String, dynamic>{
       'uid': instance.uid,
     };
 
+UserRecomendation _$UserRecomendationFromJson(Map<String, dynamic> json) =>
+    UserRecomendation(
+      topics: (json['topics'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      subTopics: (json['subTopics'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      user: json['user'] as String? ?? '',
+      dob: json['dob'] == null ? null : DateTime.parse(json['dob'] as String),
+    );
+
+Map<String, dynamic> _$UserRecomendationToJson(UserRecomendation instance) =>
+    <String, dynamic>{
+      'topics': instance.topics,
+      'subTopics': instance.subTopics,
+      'user': instance.user,
+      'dob': instance.dob?.toIso8601String(),
+    };
+
 UserData _$UserDataFromJson(Map<String, dynamic> json) => UserData(
       displayName: json['displayName'] as String? ?? '',
+      preUsername: json['preUsername'] as String? ?? '',
+      phone: json['phone'] as String? ?? '',
       email: json['email'] as String? ?? '',
       username: json['username'] as String? ?? '',
       profileIMG: json['profileIMG'] as String? ?? '',
@@ -80,12 +104,14 @@ UserData _$UserDataFromJson(Map<String, dynamic> json) => UserData(
 Map<String, dynamic> _$UserDataToJson(UserData instance) => <String, dynamic>{
       'displayName': instance.displayName,
       'email': instance.email,
+      'phone': instance.phone,
       'description': instance.description,
       'dateJoined': instance.dateJoined.toIso8601String(),
       'profileIMG': instance.profileIMG,
       'followers': instance.followers,
       'following': instance.following,
       'username': instance.username,
+      'preUsername': instance.preUsername,
       'id': instance.id,
     };
 
