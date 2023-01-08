@@ -1029,6 +1029,12 @@ class FirestoreService {
     });
   }
 
+  void followSubTopic(String userId, String topic) {
+    _db.collection("userRecomendations").doc(userId).update({
+      "subTopics": FieldValue.arrayUnion([topic]),
+    });
+  }
+
   Stream<bool> isFollowing(String fromUserUid, String toUserUid) {
     return _db
         .collection("users")

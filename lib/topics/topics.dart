@@ -18,15 +18,17 @@ class _TopicsState extends State<Topics> {
   Widget build(BuildContext context) {
     UserData report = Provider.of<UserData>(context);
     List<String> selected = [];
+    List<String> userTopics = [];
     List<String> newList = [];
 
     return StreamBuilder<List<String>>(
         stream: FirestoreService().getAllTopics(report.id),
         builder: (context, snapshot) {
+          userTopics = snapshot.data ?? [];
           subtopics.values.forEach((value) {
             newList.addAll(value);
           });
-          snapshot.data?.map(
+          userTopics.map(
             (e) {
               newList.remove(e);
             },
@@ -134,65 +136,64 @@ class _TopicsState extends State<Topics> {
                   color: Colors.grey,
                 ),
                 Column(
-                  children: snapshot.data
-                          ?.map((e) => Padding(
-                                padding: const EdgeInsets.only(left: 8.0),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Container(
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.all(4.0),
-                                              child: Icon(
-                                                Icons.message,
-                                                size: 15,
-                                              ),
+                    children: userTopics
+                        .map((e) => Padding(
+                              padding: const EdgeInsets.only(left: 8.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Container(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(4.0),
+                                            child: Icon(
+                                              Icons.message,
+                                              size: 15,
                                             ),
-                                            decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: Colors.lightBlue),
                                           ),
-                                        ),
-                                        Text(e),
-                                      ],
-                                    ),
-                                    Padding(
-                                      padding:
-                                          const EdgeInsets.only(right: 8.0),
-                                      child: MaterialButton(
-                                        shape: RoundedRectangleBorder(
-                                          side: BorderSide(color: Colors.grey),
-                                          borderRadius: BorderRadius.all(
-                                            Radius.circular(100),
-                                          ),
-                                        ),
-                                        color: Colors.transparent,
-                                        height: 25,
-                                        minWidth: 40,
-                                        onPressed: () {
-                                          FirestoreService()
-                                              .unFollowTopic(report.id, e);
-                                        },
-                                        child: Text(
-                                          "Following",
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                          ),
+                                          decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: Colors.lightBlue),
                                         ),
                                       ),
-                                    )
-                                  ],
-                                ),
-                              ))
-                          .toList() ??
-                      [],
-                ),
+                                      Text(e),
+                                    ],
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: MaterialButton(
+                                      shape: RoundedRectangleBorder(
+                                        side: BorderSide(color: Colors.grey),
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(100),
+                                        ),
+                                      ),
+                                      color: Colors.transparent,
+                                      height: 25,
+                                      minWidth: 40,
+                                      onPressed: () {
+                                        setState(() {
+                                          userTopics.remove(e);
+                                        });
+                                        FirestoreService()
+                                            .unFollowTopic(report.id, e);
+                                      },
+                                      child: Text(
+                                        "Following",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ))
+                        .toList()),
                 Divider(
                   color: Colors.grey,
                 ),
@@ -215,6 +216,7 @@ class _TopicsState extends State<Topics> {
                       stop: newList.length ~/ 3,
                       selected: selected,
                       newList: newList,
+                      report: report,
                     ),
                     ChipRow(
                       handleTap: () {},
@@ -222,6 +224,7 @@ class _TopicsState extends State<Topics> {
                       stop: (newList.length ~/ 3) * 2,
                       selected: selected,
                       newList: newList,
+                      report: report,
                     ),
                     ChipRow(
                       handleTap: () {},
@@ -229,6 +232,7 @@ class _TopicsState extends State<Topics> {
                       start: (newList.length ~/ 3) * 2,
                       selected: selected,
                       newList: newList,
+                      report: report,
                     ),
                   ],
                 ),
@@ -242,7 +246,7 @@ class _TopicsState extends State<Topics> {
 class ChipRow extends StatelessWidget {
   final int start;
   final List<String> newList;
-
+  final UserData report;
   final int stop;
 
   final List<String> selected;
@@ -254,6 +258,7 @@ class ChipRow extends StatelessWidget {
     required this.handleTap,
     required this.start,
     required this.stop,
+    required this.report,
   }) : super(key: key);
 
   final Function handleTap;
@@ -301,7 +306,7 @@ class ChipRow extends StatelessWidget {
                           ),
                           InkWell(
                             onTap: () {
-                              print("object");
+                              FirestoreService().followSubTopic(report.id, sub);
                             },
                             child: Padding(
                               padding: const EdgeInsets.only(right: 8.0),

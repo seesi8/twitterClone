@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:spark/services/firestore.dart';
@@ -19,6 +20,7 @@ class Sparks extends StatefulWidget {
 class _SparksState extends State<Sparks> {
   @override
   bool _drawerOpen = false;
+  bool scrolled = false;
 
   Widget build(BuildContext context) {
     var report = Provider.of<UserData>(context);
@@ -67,7 +69,7 @@ class _SparksState extends State<Sparks> {
                   color: Colors.lightBlue[300],
                 ),
               ),
-              Icon(FontAwesomeIcons.star)
+              // Icon(FontAwesomeIcons.star)
             ],
           ),
         ),
@@ -77,18 +79,18 @@ class _SparksState extends State<Sparks> {
           backgroundColor: Colors.lightBlue,
           onPressed: () => {Navigator.pushNamed(context, "/create")},
           child: Icon(FontAwesomeIcons.plus)),
-      persistentFooterButtons: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Icon(FontAwesomeIcons.house),
-            Icon(FontAwesomeIcons.magnifyingGlass),
-            Icon(FontAwesomeIcons.microphone),
-            Icon(FontAwesomeIcons.bell),
-            Icon(FontAwesomeIcons.envelope),
-          ],
-        )
-      ],
+      // persistentFooterButtons: [
+      //   Row(
+      //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      //     children: [
+      //       Icon(FontAwesomeIcons.house),
+      //       Icon(FontAwesomeIcons.magnifyingGlass),
+      //       Icon(FontAwesomeIcons.microphone),
+      //       Icon(FontAwesomeIcons.bell),
+      //       Icon(FontAwesomeIcons.envelope),
+      //     ],
+      //   )
+      // ],
       persistentFooterAlignment: AlignmentDirectional.center,
       body: Stack(
         children: [
@@ -109,13 +111,27 @@ class _SparksState extends State<Sparks> {
                           context, "/", (route) => false);
                     });
                   }
+                  setState(() {
+                    scrolled = true;
+                  });
                 });
 
                 return SingleChildScrollView(
                   controller: _scrollController,
                   child: Column(
                     children: snapshot.data != null
-                        ? snapshot.data!.map((e) => Spark(tweet: e)).toList()
+                        ? [
+                            scrolled
+                                ? Image.asset(
+                                    "assets/loading.gif",
+                                    height: 25.0,
+                                    width: 25.0,
+                                  )
+                                : Container(),
+                            ...snapshot.data!
+                                .map((e) => Spark(tweet: e))
+                                .toList()
+                          ]
                         : [
                             Text("Unable To Get Tweets"),
                           ],
@@ -252,36 +268,6 @@ class AccountDrawer extends StatelessWidget {
                         )
                       ],
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: Row(
-                    children: const [
-                      Padding(
-                        padding: const EdgeInsets.only(right: 20.0),
-                        child: Icon(FontAwesomeIcons.bookmark),
-                      ),
-                      Text(
-                        "Bookmarks",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      )
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: Row(
-                    children: const [
-                      Padding(
-                        padding: const EdgeInsets.only(right: 20.0),
-                        child: Icon(FontAwesomeIcons.list),
-                      ),
-                      Text(
-                        "Lists",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      )
-                    ],
                   ),
                 ),
                 const Divider(
